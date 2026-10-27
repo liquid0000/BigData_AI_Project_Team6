@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SNS 심리 진단 - 결과 리포트</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>📊 진단 결과 리포트</h1>
+        <p class="subtitle"><span id="nickname">-</span>님의 분석 결과입니다.</p>
+
+        <div class="result-card">
+            <h3>주요 심리 진단 유형</h3>
+            <h2 id="mainType" class="highlight">-</h2>
+        </div>
+
+        <div class="result-card">
+            <h3>연령대 내 나의 위치 (실시간 백분위)</h3>
+            <p><span id="ageGroup">-</span> 응답자 중 위험도 상위 <strong id="percentile" class="percent">-</strong>%에 속합니다.</p>
+            <small class="help-text">(현재 누적 <span id="totalCount">0</span>명의 실시간 데이터 기반)</small>
+        </div>
+
+        <button onclick="window.location.href='/'" class="btn-primary">처음으로 돌아가기</button>
+    </div>
+
+    <script>
+        // 백엔드 API 응답 데이터 표시
+        const res = JSON.parse(sessionStorage.getItem('result_data'));
+        if(res) {
+            document.getElementById('nickname').innerText = res.nickname || '사용자';
+            document.getElementById('mainType').innerText = res.main_type;
+            document.getElementById('ageGroup').innerText = res.age_group;
+            document.getElementById('percentile').innerText = res.percentile;
+            document.getElementById('totalCount').innerText = res.total_count;
+        } else {
+            alert("결과 데이터가 없습니다.");
+            window.location.href = '/';
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SNS 심리 진단 - 설문 진행</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h2>📋 SNS 심리 상태 진단 설문</h2>
+        <form id="surveyForm">
+            <!-- [이용 습관] Q1 ~ Q3 -->
+            <section class="section">
+                <h3>[이용 습관]</h3>
+                <div class="q-box">
+                    <label>Q1. 주로 이용하시는 소셜미디어 채널은 무엇인가요?</label>
+                    <input type="text" name="Q1" placeholder="예: 인스타그램, 유튜브, X(트위터)" required>
+                </div>
+                <div class="q-box">
+                    <label>Q2. 하루 평균 소셜미디어 이용시간은 어느 정도인가요?</label>
+                    <select name="Q2" required>
+                        <option value="1시간 미만">1시간 미만</option>
+                        <option value="1~3시간">1~3시간</option>
+                        <option value="3~5시간">3~5시간</option>
+                        <option value="5시간 이상">5시간 이상</option>
+                    </select>
+                </div>
+                <div class="q-box">
+                    <label>Q3. 소셜미디어를 이용하는 가장 주요한 목적은 무엇인가요?</label>
+                    <input type="text" name="Q3" placeholder="예: 정보 탐색, 친목 도모, 시간 떼우기" required>
+                </div>
+            </section>
+
+            <!-- [심리 측도] Q4 ~ Q17 (14개 문항 / 5점 척도) -->
+            <section class="section">
+                <h3>[심리 상태 평가]</h3>
+                <p class="section-desc">(1점: 전혀 아니다 ~ 5점: 매우 그렇다)</p>
+                
+                <script>
+                    const questions = [
+                        {id: 'Q4', text: '타인 SNS를 보고 상대적 박탈감이나 우울함을 느낀 적이 있다.'},
+                        {id: 'Q5', text: '잘나가는 타인의 일상을 보면 내 삶이 초라하게 느껴진다.'},
+                        {id: 'Q6', text: '내 게시물 반응(좋아요 등)이 적으면 의소침해진다.'},
+                        {id: 'Q7', text: '타인과 나를 비교하며 열등감을 느낀 적이 있다.'},
+                        {id: 'Q8', text: '습관적으로 SNS를 확인하지 않으면 불안감을 느낀다.'},
+                        {id: 'Q9', text: '알림을 놓치면 트렌드/대화에서 소외될까 두렵다.'},
+                        {id: 'Q10', text: '다른 일을 하는 중에도 무의식적으로 SNS를 새로고침한다.'},
+                        {id: 'Q11', text: '잠들기 직전이나 눈을 뜨자마자 SNS를 확인한다.'},
+                        {id: 'Q12', text: 'SNS를 통해 유익한 정보를 얻거나 힐링을 얻는다.'},
+                        {id: 'Q13', text: '취미, 업무, 학습 최신 정보를 탐색하는 도구로 활용한다.'},
+                        {id: 'Q14', text: '유익한 콘텐츠 소비를 통해 긍정적인 자극을 받는다.'},
+                        {id: 'Q15', text: 'SNS 소통이 현실 인간관계 유지에 도움을 준다.'},
+                        {id: 'Q16', text: '자주 만나기 어려운 지인과의 소통에 도움을 준다.'},
+                        {id: 'Q17', text: '취향이 같은 사람들과 소통하며 유대감을 느낀다.'}
+                    ];
+                    
+                    document.write(questions.map(q => `
+                        <div class="q-box">
+                            <label>${q.id}. ${q.text}</label>
+                            <div class="radio-group">
+                                ${[1,2,3,4,5].map(v => `
+                                    <label class="radio-item">
+                                        <input type="radio" name="${q.id}" value="${v}" required> ${v}점
+                                    </label>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `).join(''));
+                </script>
+            </section>
+
+            <!-- [자유 서술] Q18 ~ Q19 -->
+            <section class="section">
+                <h3>[자유 서술]</h3>
+                <div class="q-box">
+                    <label>Q18. SNS가 삶에 미쳤던 부정적인 경험이나 생각이 있다면 적어주세요.</label>
+                    <textarea name="Q18" rows="3" placeholder="자유롭게 작성해주세요 (선택)"></textarea>
+                </div>
+                <div class="q-box">
+                    <label>Q19. SNS가 삶에 미쳤던 긍정적인 경험이나 생각이 있다면 적어주세요.</label>
+                    <textarea name="Q19" rows="3" placeholder="자유롭게 작성해주세요 (선택)"></textarea>
+                </div>
+            </section>
+
+            <button type="button" onclick="submitSurvey()" class="btn-primary">📤 진단 완료 및 제출하기</button>
+        </form>
+    </div>
+    <script src="/static/js/main.js"></script>
+</body>
+</html>
