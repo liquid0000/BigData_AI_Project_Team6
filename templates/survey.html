@@ -3,89 +3,311 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SNS 심리 진단 - 설문 진행</title>
+    <title>소셜미디어 심리 상태 진단 - 설문</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
     <div class="container">
-        <h2>📋 SNS 심리 상태 진단 설문</h2>
-        <form id="surveyForm">
-            <!-- [이용 습관] Q1 ~ Q3 -->
-            <section class="section">
-                <h3>[이용 습관]</h3>
-                <div class="q-box">
-                    <label>Q1. 주로 이용하시는 소셜미디어 채널은 무엇인가요?</label>
-                    <input type="text" name="Q1" placeholder="예: 인스타그램, 유튜브, X(트위터)" required>
-                </div>
-                <div class="q-box">
-                    <label>Q2. 하루 평균 소셜미디어 이용시간은 어느 정도인가요?</label>
-                    <select name="Q2" required>
-                        <option value="1시간 미만">1시간 미만</option>
-                        <option value="1~3시간">1~3시간</option>
-                        <option value="3~5시간">3~5시간</option>
-                        <option value="5시간 이상">5시간 이상</option>
-                    </select>
-                </div>
-                <div class="q-box">
-                    <label>Q3. 소셜미디어를 이용하는 가장 주요한 목적은 무엇인가요?</label>
-                    <input type="text" name="Q3" placeholder="예: 정보 탐색, 친목 도모, 시간 떼우기" required>
-                </div>
-            </section>
+        <header class="header">
+            <h1>🧠 SNS 심리 상태 진단 설문</h1>
+            <p>각 문항을 읽고 자신에게 가장 해당하는 점수를 선택해 주세요. (총 25문항, 문항당 0~4점 / 100점 만점)</p>
+        </header>
 
-            <!-- [심리 측도] Q4 ~ Q17 (14개 문항 / 5점 척도) -->
-            <section class="section">
-                <h3>[심리 상태 평가]</h3>
-                <p class="section-desc">(1점: 전혀 아니다 ~ 5점: 매우 그렇다)</p>
-                
-                <script>
-                    const questions = [
-                        {id: 'Q4', text: '타인 SNS를 보고 상대적 박탈감이나 우울함을 느낀 적이 있다.'},
-                        {id: 'Q5', text: '잘나가는 타인의 일상을 보면 내 삶이 초라하게 느껴진다.'},
-                        {id: 'Q6', text: '내 게시물 반응(좋아요 등)이 적으면 의소침해진다.'},
-                        {id: 'Q7', text: '타인과 나를 비교하며 열등감을 느낀 적이 있다.'},
-                        {id: 'Q8', text: '습관적으로 SNS를 확인하지 않으면 불안감을 느낀다.'},
-                        {id: 'Q9', text: '알림을 놓치면 트렌드/대화에서 소외될까 두렵다.'},
-                        {id: 'Q10', text: '다른 일을 하는 중에도 무의식적으로 SNS를 새로고침한다.'},
-                        {id: 'Q11', text: '잠들기 직전이나 눈을 뜨자마자 SNS를 확인한다.'},
-                        {id: 'Q12', text: 'SNS를 통해 유익한 정보를 얻거나 힐링을 얻는다.'},
-                        {id: 'Q13', text: '취미, 업무, 학습 최신 정보를 탐색하는 도구로 활용한다.'},
-                        {id: 'Q14', text: '유익한 콘텐츠 소비를 통해 긍정적인 자극을 받는다.'},
-                        {id: 'Q15', text: 'SNS 소통이 현실 인간관계 유지에 도움을 준다.'},
-                        {id: 'Q16', text: '자주 만나기 어려운 지인과의 소통에 도움을 준다.'},
-                        {id: 'Q17', text: '취향이 같은 사람들과 소통하며 유대감을 느낀다.'}
-                    ];
-                    
-                    document.write(questions.map(q => `
-                        <div class="q-box">
-                            <label>${q.id}. ${q.text}</label>
-                            <div class="radio-group">
-                                ${[1,2,3,4,5].map(v => `
-                                    <label class="radio-item">
-                                        <input type="radio" name="${q.id}" value="${v}" required> ${v}점
-                                    </label>
-                                `).join('')}
-                            </div>
-                        </div>
-                    `).join(''));
-                </script>
-            </section>
+        <form id="surveyForm" class="survey-form">
+            <!-- PART 1: 이용 습관 및 의존도 -->
+            <div class="section-title">PART 1. SNS 이용 습관 및 의존도</div>
 
-            <!-- [자유 서술] Q18 ~ Q19 -->
-            <section class="section">
-                <h3>[자유 서술]</h3>
-                <div class="q-box">
-                    <label>Q18. SNS가 삶에 미쳤던 부정적인 경험이나 생각이 있다면 적어주세요.</label>
-                    <textarea name="Q18" rows="3" placeholder="자유롭게 작성해주세요 (선택)"></textarea>
+            <div class="question-card">
+                <p class="question-text">1. 아침에 눈을 뜨거나 잠들기 전 가장 먼저 SNS를 확인한다.</p>
+                <div class="options">
+                    <label><input type="radio" name="q1" value="0" required> 0점 (전혀 아니다)</label>
+                    <label><input type="radio" name="q1" value="1"> 1점</label>
+                    <label><input type="radio" name="q1" value="2"> 2점 (보통이다)</label>
+                    <label><input type="radio" name="q1" value="3"> 3점</label>
+                    <label><input type="radio" name="q1" value="4"> 4점 (매우 그렇다)</label>
                 </div>
-                <div class="q-box">
-                    <label>Q19. SNS가 삶에 미쳤던 긍정적인 경험이나 생각이 있다면 적어주세요.</label>
-                    <textarea name="Q19" rows="3" placeholder="자유롭게 작성해주세요 (선택)"></textarea>
-                </div>
-            </section>
+            </div>
 
-            <button type="button" onclick="submitSurvey()" class="btn-primary">📤 진단 완료 및 제출하기</button>
+            <div class="question-card">
+                <p class="question-text">2. 일하는 중이나 공부할 때도 습관적으로 SNS 앱을 열어본다.</p>
+                <div class="options">
+                    <label><input type="radio" name="q2" value="0" required> 0점 (전혀 아니다)</label>
+                    <label><input type="radio" name="q2" value="1"> 1점</label>
+                    <label><input type="radio" name="q2" value="2"> 2점 (보통이다)</label>
+                    <label><input type="radio" name="q2" value="3"> 3점</label>
+                    <label><input type="radio" name="q2" value="4"> 4점 (매우 그렇다)</label>
+                </div>
+            </div>
+
+            <div class="question-card">
+                <p class="question-text">3. 특별한 알림이 울리지 않아도 무의식적으로 SNS 앱을 계속 터치해 연다.</p>
+                <div class="options">
+                    <label><input type="radio" name="q3" value="0" required> 0점 (전혀 아니다)</label>
+                    <label><input type="radio" name="q3" value="1"> 1점</label>
+                    <label><input type="radio" name="q3" value="2"> 2점 (보통이다)</label>
+                    <label><input type="radio" name="q3" value="3"> 3점</label>
+                    <label><input type="radio" name="q3" value="4"> 4점 (매우 그렇다)</label>
+                </div>
+            </div>
+
+            <div class="question-card">
+                <p class="question-text">4. 하루라도 SNS 접속을 하지 않으면 중요한 소식이나 트렌드를 놓칠까 봐 불안하다 (FOMO).</p>
+                <div class="options">
+                    <label><input type="radio" name="q4" value="0" required> 0점 (전혀 아니다)</label>
+                    <label><input type="radio" name="q4" value="1"> 1점</label>
+                    <label><input type="radio" name="q4" value="2"> 2점 (보통이다)</label>
+                    <label><input type="radio" name="q4" value="3"> 3점</label>
+                    <label><input type="radio" name="q4" value="4"> 4점 (매우 그렇다)</label>
+                </div>
+            </div>
+
+            <div class="question-card">
+                <p class="question-text">5. SNS 사용 시간을 스스로 줄이려고 시도해보았지만 매번 실패했다.</p>
+                <div class="options">
+                    <label><input type="radio" name="q5" value="0" required> 0점 (전혀 아니다)</label>
+                    <label><input type="radio" name="q5" value="1"> 1점</label>
+                    <label><input type="radio" name="q5" value="2"> 2점 (보통이다)</label>
+                    <label><input type="radio" name="q5" value="3"> 3점</label>
+                    <label><input type="radio" name="q5" value="4"> 4점 (매우 그렇다)</label>
+                </div>
+            </div>
+
+            <!-- PART 2: 타인 비교 및 자존감/박탈감 -->
+            <div class="section-title">PART 2. 타인 비교 및 자존감 / 박탈감</div>
+
+            <div class="question-card">
+                <p class="question-text">6. SNS에 올라온 타인의 멋진 일상(여행, 맛집, 성과)을 보면 내 삶과 비교되어 씁쓸해진다.</p>
+                <div class="options">
+                    <label><input type="radio" name="q6" value="0" required> 0점 (전혀 아니다)</label>
+                    <label><input type="radio" name="q6" value="1"> 1점</label>
+                    <label><input type="radio" name="q6" value="2"> 2점 (보통이다)</label>
+                    <label><input type="radio" name="q6" value="3"> 3점</label>
+                    <label><input type="radio" name="q6" value="4"> 4점 (매우 그렇다)</label>
+                </div>
+            </div>
+
+            <div class="question-card">
+                <p class="question-text">7. 타인의 SNS를 본 후 "나만 제자리걸음인 것 같다"는 상대적 박탈감을 느낀다.</p>
+                <div class="options">
+                    <label><input type="radio" name="q7" value="0" required> 0점 (전혀 아니다)</label>
+                    <label><input type="radio" name="q7" value="1"> 1점</label>
+                    <label><input type="radio" name="q7" value="2"> 2점 (보통이다)</label>
+                    <label><input type="radio" name="q7" value="3"> 3점</label>
+                    <label><input type="radio" name="q7" value="4"> 4점 (매우 그렇다)</label>
+                </div>
+            </div>
+
+            <div class="question-card">
+                <p class="question-text">8. 내가 올린 게시글의 좋아요, 댓글 수가 적으면 신경이 쓰이거나 게시글을 삭제하고 싶어진다.</p>
+                <div class="options">
+                    <label><input type="radio" name="q8" value="0" required> 0점 (전혀 아니다)</label>
+                    <label><input type="radio" name="q8" value="1"> 1점</label>
+                    <label><input type="radio" name="q8" value="2"> 2점 (보통이다)</label>
+                    <label><input type="radio" name="q8" value="3"> 3점</label>
+                    <label><input type="radio" name="q8" value="4"> 4점 (매우 그렇다)</label>
+                </div>
+            </div>
+
+            <div class="question-card">
+                <p class="question-text">9. SNS상에서는 실제 내 모습보다 훨씬 행복하고 완벽해 보이도록 연출해서 올린다.</p>
+                <div class="options">
+                    <label><input type="radio" name="q9" value="0" required> 0점 (전혀 아니다)</label>
+                    <label><input type="radio" name="q9" value="1"> 1점</label>
+                    <label><input type="radio" name="q9" value="2"> 2점 (보통이다)</label>
+                    <label><input type="radio" name="q9" value="3"> 3점</label>
+                    <label><input type="radio" name="q9" value="4"> 4점 (매우 그렇다)</label>
+                </div>
+            </div>
+
+            <div class="question-card">
+                <p class="question-text">10. 타인의 승진, 합격, 연애 소식을 SNS로 접했을 때 순수하게 축하하기보다 배가 아프거나 질투가 난다.</p>
+                <div class="options">
+                    <label><input type="radio" name="q10" value="0" required> 0점 (전혀 아니다)</label>
+                    <label><input type="radio" name="q10" value="1"> 1점</label>
+                    <label><input type="radio" name="q10" value="2"> 2점 (보통이다)</label>
+                    <label><input type="radio" name="q10" value="3"> 3점</label>
+                    <label><input type="radio" name="q10" value="4"> 4점 (매우 그렇다)</label>
+                </div>
+            </div>
+
+            <!-- PART 3: 감정 및 정서적 영향 -->
+            <div class="section-title">PART 3. 감정 및 정서적 영향</div>
+
+            <div class="question-card">
+                <p class="question-text">11. SNS를 오래 하고 나면 만족감보다는 알 수 없는 허무함이나 우울함이 밀려온다.</p>
+                <div class="options">
+                    <label><input type="radio" name="q11" value="0" required> 0점 (전혀 아니다)</label>
+                    <label><input type="radio" name="q11" value="1"> 1점</label>
+                    <label><input type="radio" name="q11" value="2"> 2점 (보통이다)</label>
+                    <label><input type="radio" name="q11" value="3"> 3점</label>
+                    <label><input type="radio" name="q11" value="4"> 4점 (매우 그렇다)</label>
+                </div>
+            </div>
+
+            <div class="question-card">
+                <p class="question-text">12. 오프라인 인간관계보다 SNS 속 관계나 타인의 반응에 더 피로감을 느낀다.</p>
+                <div class="options">
+                    <label><input type="radio" name="q12" value="0" required> 0점 (전혀 아니다)</label>
+                    <label><input type="radio" name="q12" value="1"> 1점</label>
+                    <label><input type="radio" name="q12" value="2"> 2점 (보통이다)</label>
+                    <label><input type="radio" name="q12" value="3"> 3점</label>
+                    <label><input type="radio" name="q12" value="4"> 4점 (매우 그렇다)</label>
+                </div>
+            </div>
+
+            <div class="question-card">
+                <p class="question-text">13. 감정적으로 힘들거나 우울할 때 현실의 문제를 해결하기보다 SNS에 감정적인 글/사진을 올린다.</p>
+                <div class="options">
+                    <label><input type="radio" name="q13" value="0" required> 0점 (전혀 아니다)</label>
+                    <label><input type="radio" name="q13" value="1"> 1점</label>
+                    <label><input type="radio" name="q13" value="2"> 2점 (보통이다)</label>
+                    <label><input type="radio" name="q13" value="3"> 3점</label>
+                    <label><input type="radio" name="q13" value="4"> 4점 (매우 그렇다)</label>
+                </div>
+            </div>
+
+            <div class="question-card">
+                <p class="question-text">14. 밤늦게까지 SNS를 하느라 수면 시간이 부족하거나 잠자리에 들기 힘들다.</p>
+                <div class="options">
+                    <label><input type="radio" name="q14" value="0" required> 0점 (전혀 아니다)</label>
+                    <label><input type="radio" name="q14" value="1"> 1점</label>
+                    <label><input type="radio" name="q14" value="2"> 2점 (보통이다)</label>
+                    <label><input type="radio" name="q14" value="3"> 3점</label>
+                    <label><input type="radio" name="q14" value="4"> 4점 (매우 그렇다)</label>
+                </div>
+            </div>
+
+            <div class="question-card">
+                <p class="question-text">15. SNS 때문에 주변 사람(가족, 친구)과의 대화나 현실 대면 소통이 줄어들었다.</p>
+                <div class="options">
+                    <label><input type="radio" name="q15" value="0" required> 0점 (전혀 아니다)</label>
+                    <label><input type="radio" name="q15" value="1"> 1점</label>
+                    <label><input type="radio" name="q15" value="2"> 2점 (보통이다)</label>
+                    <label><input type="radio" name="q15" value="3"> 3점</label>
+                    <label><input type="radio" name="q15" value="4"> 4점 (매우 그렇다)</label>
+                </div>
+            </div>
+
+            <!-- PART 4: 통제력 및 디지털 스트레스 -->
+            <div class="section-title">PART 4. 통제력 및 디지털 스트레스</div>
+
+            <div class="question-card">
+                <p class="question-text">16. 현실에서의 내 모습과 SNS 속에서 비치는 내 모습 사이에 괴리감을 크게 느낀다.</p>
+                <div class="options">
+                    <label><input type="radio" name="q16" value="0" required> 0점 (전혀 아니다)</label>
+                    <label><input type="radio" name="q16" value="1"> 1점</label>
+                    <label><input type="radio" name="q16" value="2"> 2점 (보통이다)</label>
+                    <label><input type="radio" name="q16" value="3"> 3점</label>
+                    <label><input type="radio" name="q16" value="4"> 4점 (매우 그렇다)</label>
+                </div>
+            </div>
+
+            <div class="question-card">
+                <p class="question-text">17. SNS를 끊고 싶다고 생각하면서도 실제 행동으로는 옮기지 못한다.</p>
+                <div class="options">
+                    <label><input type="radio" name="q17" value="0" required> 0점 (전혀 아니다)</label>
+                    <label><input type="radio" name="q17" value="1"> 1점</label>
+                    <label><input type="radio" name="q17" value="2"> 2점 (보통이다)</label>
+                    <label><input type="radio" name="q17" value="3"> 3점</label>
+                    <label><input type="radio" name="q17" value="4"> 4점 (매우 그렇다)</label>
+                </div>
+            </div>
+
+            <div class="question-card">
+                <p class="question-text">18. SNS에 올라오는 수많은 정보와 소식들을 계속 접하다 보면 머리가 지치고 정신적 피로감을 느낀다.</p>
+                <div class="options">
+                    <label><input type="radio" name="q18" value="0" required> 0점 (전혀 아니다)</label>
+                    <label><input type="radio" name="q18" value="1"> 1점</label>
+                    <label><input type="radio" name="q18" value="2"> 2점 (보통이다)</label>
+                    <label><input type="radio" name="q18" value="3"> 3점</label>
+                    <label><input type="radio" name="q18" value="4"> 4점 (매우 그렇다)</label>
+                </div>
+            </div>
+
+            <div class="question-card">
+                <p class="question-text">19. SNS 광고나 인플루언서의 추천을 보고 계획에 없던 물건을 충동적으로 구매한 적이 자주 있다.</p>
+                <div class="options">
+                    <label><input type="radio" name="q19" value="0" required> 0점 (전혀 아니다)</label>
+                    <label><input type="radio" name="q19" value="1"> 1점</label>
+                    <label><input type="radio" name="q19" value="2"> 2점 (보통이다)</label>
+                    <label><input type="radio" name="q19" value="3"> 3점</label>
+                    <label><input type="radio" name="q19" value="4"> 4점 (매우 그렇다)</label>
+                </div>
+            </div>
+
+            <div class="question-card">
+                <p class="question-text">20. SNS에서 타인에게 받은 부정적인 댓글이나 무반응(좋아요 없음) 때문에 하루 종일 기분이 망가진 적이 있다.</p>
+                <div class="options">
+                    <label><input type="radio" name="q20" value="0" required> 0점 (전혀 아니다)</label>
+                    <label><input type="radio" name="q20" value="1"> 1점</label>
+                    <label><input type="radio" name="q20" value="2"> 2점 (보통이다)</label>
+                    <label><input type="radio" name="q20" value="3"> 3점</label>
+                    <label><input type="radio" name="q20" value="4"> 4점 (매우 그렇다)</label>
+                </div>
+            </div>
+
+            <!-- PART 5: 신체 및 종합적 영향 -->
+            <div class="section-title">PART 5. 신체적·대인관계 및 종합 영향</div>
+
+            <div class="question-card">
+                <p class="question-text">21. SNS에서 친구나 타인의 상태 업데이트가 끊기면 나와의 관계에 문제가 생겼는지 걱정된다.</p>
+                <div class="options">
+                    <label><input type="radio" name="q21" value="0" required> 0점 (전혀 아니다)</label>
+                    <label><input type="radio" name="q21" value="1"> 1점</label>
+                    <label><input type="radio" name="q21" value="2"> 2점 (보통이다)</label>
+                    <label><input type="radio" name="q21" value="3"> 3점</label>
+                    <label><input type="radio" name="q21" value="4"> 4점 (매우 그렇다)</label>
+                </div>
+            </div>
+
+            <div class="question-card">
+                <p class="question-text">22. 현실의 스트레스나 해결해야 할 과제가 생겼을 때 이를 회피하기 위한 수단으로 SNS를 이용한다.</p>
+                <div class="options">
+                    <label><input type="radio" name="q22" value="0" required> 0점 (전혀 아니다)</label>
+                    <label><input type="radio" name="q22" value="1"> 1점</label>
+                    <label><input type="radio" name="q22" value="2"> 2점 (보통이다)</label>
+                    <label><input type="radio" name="q22" value="3"> 3점</label>
+                    <label><input type="radio" name="q22" value="4"> 4점 (매우 그렇다)</label>
+                </div>
+            </div>
+
+            <div class="question-card">
+                <p class="question-text">23. SNS에 글이나 사진을 올리기 전에 타인에게 어떻게 보일지 과도하게 고민하고 수차례 수정한다.</p>
+                <div class="options">
+                    <label><input type="radio" name="q23" value="0" required> 0점 (전혀 아니다)</label>
+                    <label><input type="radio" name="q23" value="1"> 1점</label>
+                    <label><input type="radio" name="q23" value="2"> 2점 (보통이다)</label>
+                    <label><input type="radio" name="q23" value="3"> 3점</label>
+                    <label><input type="radio" name="q23" value="4"> 4점 (매우 그렇다)</label>
+                </div>
+            </div>
+
+            <div class="question-card">
+                <p class="question-text">24. 화면을 오래 보며 SNS를 하느라 눈이 피로하거나 두통, 거북목 등 신체적 불편감을 자주 느낀다.</p>
+                <div class="options">
+                    <label><input type="radio" name="q24" value="0" required> 0점 (전혀 아니다)</label>
+                    <label><input type="radio" name="q24" value="1"> 1점</label>
+                    <label><input type="radio" name="q24" value="2"> 2점 (보통이다)</label>
+                    <label><input type="radio" name="q24" value="3"> 3점</label>
+                    <label><input type="radio" name="q24" value="4"> 4점 (매우 그렇다)</label>
+                </div>
+            </div>
+
+            <div class="question-card">
+                <p class="question-text">25. 하루라도 SNS 없이 지내는 것은 상상하기 어려우며, 내 일상생활의 중심이 SNS에 맞춰져 있다.</p>
+                <div class="options">
+                    <label><input type="radio" name="q25" value="0" required> 0점 (전혀 아니다)</label>
+                    <label><input type="radio" name="q25" value="1"> 1점</label>
+                    <label><input type="radio" name="q25" value="2"> 2점 (보통이다)</label>
+                    <label><input type="radio" name="q25" value="3"> 3점</label>
+                    <label><input type="radio" name="q25" value="4"> 4점 (매우 그렇다)</label>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block">📤 진단 완료 및 제출하기</button>
         </form>
     </div>
-    <script src="/static/js/main.js"></script>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>
 </html>

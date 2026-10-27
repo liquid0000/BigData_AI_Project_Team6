@@ -1,77 +1,70 @@
-// 1. 사전 정보 입력 및 60일 재진단 기한 검증 (API 호출)
-function startSurvey() {
-    const userInfo = {
-        nickname: document.getElementById('nickname').value.trim(),
-        phone: document.getElementById('phone').value.trim(),
-        email: document.getElementById('email').value.trim(),
-        age_group: document.getElementById('ageGroup').value,
-        gender: document.getElementById('gender').value
-    };
+document.addEventListener('DOMContentLoaded', () => {
+    const surveyForm = document.getElementById('surveyForm');
+    if (!surveyForm) return;
 
-    if (!userInfo.nickname || !userInfo.phone || !userInfo.email || !userInfo.age_group) {
-        alert("모든 필수 항목을 입력해 주세요.");
-        return;
-    }
+    const STORAGE_KEY = 'sns_survey_temp_data';
+    let isSubmitting = false;
 
-    // 백엔드로 60일 검증 요청
-    fetch('/api/check-user', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: userInfo.phone, email: userInfo.email })
-    })
-        .then(res => res.json())
-        .then(data => {
-            if (data.can_survey) {
-                sessionStorage.setItem('user_info', JSON.stringify(userInfo));
-                window.location.href = '/survey';
-            } else {
-                alert(data.message);
-            }
-        })
-        .catch(err => {
-            console.error("API 요청 실패:", err);
-            alert("서버 통신 중 오류가 발생했습니다.");
-        });
-}
+    // 1. 저장된 임시 데이터가 있으면 자동으로 불러와서 체크
+    const savedData = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+    Object.keys(savedData).forEach(qName => {
+        const value = savedData[qName];
+        const radio = surveyForm.querySelector(`input[name="${qName}"][value="${value}"]`);
+        if (radio) radio.checked = true;
+    });
 
-// 2. '진단 완료' 클릭 시 백엔드로 API 요청 전송
-function submitSurvey() {
-    const userInfo = JSON.parse(sessionStorage.getItem('user_info'));
-    if (!userInfo) {
-        alert("사전 정보가 없습니다. 메인 페이지로 이동합니다.");
-        window.location.href = '/';
-        return;
-    }
-
-    const formData = new FormData(document.getElementById('surveyForm'));
-    const answers = {};
-    formData.forEach((value, key) => answers[key] = value);
-
-    // Q4 ~ Q17 14개 필수 라디오버튼 체킹 검증
-    for (let i = 4; i <= 17; i++) {
-        if (!answers[`Q${i}`]) {
-            alert(`Q${i}번 문항에 응답해 주세요.`);
-            return;
+    // 2. 사용자가 선택을 바꿀 때마다 LocalStorage에 실시간 저장
+    surveyForm.addEventListener('change', (e) => {
+        if (e.target.type === 'radio') {
+            const currentData = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+            currentData[e.target.name] = e.target.value;
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(currentData));
         }
-    }
+    });
 
-    // 백엔드로 최종 응답 데이터 제출 (커밋 포인트)
-    fetch('/api/submit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_info: userInfo, answers: answers })
-    })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                sessionStorage.setItem('result_data', JSON.stringify(data.result));
+    // 3. 페이지 이탈(뒤로가기, 탭 닫기, 새로고침 등) 시 경고창 표시
+    window.addEventListener('beforeunload', (e) => {
+        // 정상 제출 중이 아니고, 작성 중인 데이터가 있을 때만 경고
+        const hasData = Object.keys(JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}')).length > 0;
+        if (!isSubmitting && hasData) {
+            e.preventDefault();
+            e.returnValue = ''; // 브라우저 표준 이탈 경고 출력
+        }
+    });
+
+    // 4. 설문 제출 처리
+    surveyForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        isSubmitting = true; // 정상 제출 상태로 변경 (경고창 차단)
+
+        const formData = new FormData(surveyForm);
+        const responseData = {};
+
+        formData.forEach((value, key) => {
+            responseData[key] = parseInt(value, 10);
+        });
+
+        try {
+            const response = await fetch('/api/submit', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(responseData)
+            });
+
+            if (response.ok) {
+                // 제출 성공 시 임시 저장 데이터 삭제
+                localStorage.removeItem(STORAGE_KEY);
                 window.location.href = '/result';
             } else {
-                alert("제출 처리 실패: " + (data.message || "오류 발생"));
+                alert('제출 중 오류가 발생했습니다. 다시 시도해주세요.');
+                isSubmitting = false;
             }
-        })
-        .catch(err => {
-            console.error("제출 실패:", err);
-            alert("서버 제출 중 오류가 발생했습니다.");
-        });
-}
+        } catch (error) {
+            console.error('Error submitting survey:', error);
+            alert('서버와의 통신에 실패했습니다.');
+            isSubmitting = false;
+        }
+    });
+});
