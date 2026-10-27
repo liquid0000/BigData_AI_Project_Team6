@@ -138,3 +138,111 @@ input[type="text"], input[type="tel"], input[type="email"], select, textarea {
     color: #ef4444;
     font-size: 28px;
 }
+
+/* ==========================================
+   MBTI 스타일 가로 라디오 버튼 레이아웃
+   ========================================== */
+
+/* 질문 카드 상자 */
+.question-item {
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    border: 1px solid #f0f0f0;
+    transition: all 0.3s ease;
+}
+
+/* 질문 제목 */
+.question-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #2c3e50;
+    margin-bottom: 20px;
+    line-height: 1.5;
+}
+
+/* 가로 척도 전체 컨테이너 */
+.scale-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* 상단 범위 안내 문구 ("전혀 아니다" ~ "매우 그렇다") */
+.scale-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #7f8c8d;
+    padding: 0 8px;
+}
+
+.scale-label-left {
+    color: #e74c3c; /* 비동의 측 색상 */
+}
+
+.scale-label-right {
+    color: #2ecc71; /* 동의 측 색상 */
+}
+
+/* 5개 점수 선택 버튼 가로 정렬 */
+.scale-options {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    background: #f8f9fa;
+    padding: 12px 16px;
+    border-radius: 50px;
+}
+
+/* 동그란 선택 라디오 버튼 레이블 */
+.scale-option-label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex: 1;
+}
+
+    /* 실제 radio input 숨기기 */
+    .scale-option-label input[type="radio"] {
+        display: none;
+    }
+
+/* 동그라미 버튼 커스텀 */
+.scale-circle {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 2px solid #cbd5e1;
+    background-color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease-in-out;
+}
+
+/* 마우스 호버 효과 */
+.scale-option-label:hover .scale-circle {
+    border-color: #4f46e5;
+    transform: scale(1.08);
+}
+
+/* 선택되었을 때 (Checked) 스타일 */
+.scale-option-label input[type="radio"]:checked + .scale-circle {
+    background-color: #4f46e5;
+    border-color: #4f46e5;
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.35);
+    transform: scale(1.1);
+}
+
+/* 미응답 에러 시 빨간 강조 */
+.error-unanswered {
+    border: 2px solid #ef4444 !important;
+    background-color: #fef2f2 !important;
+}

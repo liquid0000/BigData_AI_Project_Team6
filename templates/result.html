@@ -3,41 +3,257 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SNS 심리 진단 - 결과 리포트</title>
+    <title>SNS 심리 상태 진단 결과 리포트</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        body {
+            background-color: #f8fafc;
+            font-family: 'Pretendard', -apple-system, sans-serif;
+            padding: 50px 0;
+            margin: 0;
+        }
+
+        .result-card {
+            max-width: 680px;
+            margin: 0 auto;
+            background: #ffffff;
+            padding: 40px;
+            border-radius: 24px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+            box-sizing: border-box;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 6px 14px;
+            background: #eef2ff;
+            color: #4f46e5;
+            font-size: 13px;
+            font-weight: 700;
+            border-radius: 20px;
+            margin-bottom: 12px;
+        }
+
+        .user-title {
+            font-size: 24px;
+            font-weight: 800;
+            color: #0f172a;
+            margin: 0 0 6px 0;
+        }
+
+        .sub-text {
+            color: #64748b;
+            font-size: 14px;
+            margin: 0 0 28px 0;
+        }
+
+        /* 백분위 통계 비교 박스 */
+        .percentile-container {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .p-box {
+            flex: 1;
+            background: #f8fafc;
+            border: 1.5px solid #e2e8f0;
+            padding: 18px;
+            border-radius: 16px;
+            text-align: center;
+        }
+
+        .p-label {
+            font-size: 12px;
+            color: #64748b;
+            font-weight: 600;
+        }
+
+        .p-value {
+            font-size: 22px;
+            font-weight: 800;
+            color: #4f46e5;
+            margin-top: 4px;
+        }
+
+        /* 종합 위험도 배너 */
+        .score-banner {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: #ffffff;
+            padding: 28px;
+            border-radius: 20px;
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .score-val {
+            font-size: 46px;
+            font-weight: 900;
+            margin: 6px 0;
+        }
+
+        .status-txt {
+            display: inline-block;
+            padding: 6px 16px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        /* 5개 파트별 위험도 막대 그래프 */
+        .part-analysis {
+            margin-bottom: 32px;
+        }
+
+        .part-item {
+            margin-bottom: 18px;
+        }
+
+        .part-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            font-weight: 700;
+            color: #334155;
+            margin-bottom: 6px;
+        }
+
+        .bar-bg {
+            width: 100%;
+            height: 10px;
+            background: #e2e8f0;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .bar-fill {
+            height: 100%;
+            background: #4f46e5;
+            border-radius: 5px;
+            transition: width 0.8s ease;
+        }
+
+        /* 처방 솔루션 카드 */
+        .sol-card {
+            background: #f8fafc;
+            border: 1.5px solid #f1f5f9;
+            padding: 18px 20px;
+            border-radius: 16px;
+            margin-bottom: 12px;
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .sol-icon {
+            font-size: 26px;
+        }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <h1>📊 진단 결과 리포트</h1>
-        <p class="subtitle"><span id="nickname">-</span>님의 분석 결과입니다.</p>
+    <div class="result-card">
 
-        <div class="result-card">
-            <h3>주요 심리 진단 유형</h3>
-            <h2 id="mainType" class="highlight">-</h2>
+        <div style="text-align: center;">
+            <span class="badge">진단 리포트</span>
+            <h1 class="user-title">{{ result.nickname }}님의 SNS 심리 상태 진단</h1>
+            <p class="sub-text">
+                연령대: <strong>{{ result.user_age }}</strong> | 통합 데이터셋 <strong>{{ result.total_dataset_count }}개</strong> 실시간 정밀 비교
+            </p>
         </div>
 
-        <div class="result-card">
-            <h3>연령대 내 나의 위치 (실시간 백분위)</h3>
-            <p><span id="ageGroup">-</span> 응답자 중 위험도 상위 <strong id="percentile" class="percent">-</strong>%에 속합니다.</p>
-            <small class="help-text">(현재 누적 <span id="totalCount">0</span>명의 실시간 데이터 기반)</small>
+        <!-- 1. 백분위 비교 통계 -->
+        <div class="percentile-container">
+            <div class="p-box">
+                <div class="p-label">🌐 데이터셋 전체 기준</div>
+                <div class="p-value">상위 {{ result.percentile }}%</div>
+            </div>
+            <div class="p-box">
+                <div class="p-label">👥 {{ result.user_age }} 집단 내 기준</div>
+                <div class="p-value">상위 {{ result.age_percentile }}%</div>
+            </div>
         </div>
 
-        <button onclick="window.location.href='/'" class="btn-primary">처음으로 돌아가기</button>
+        <!-- 2. 종합 점수 및 위험군 상태 -->
+        <div class="score-banner">
+            <div style="font-size: 13px; opacity: 0.9;">종합 심리 위험도 점수</div>
+            <div class="score-val">{{ result.total_score }}점</div>
+            <div class="status-txt">진단 결과: {{ result.status }}</div>
+        </div>
+
+        <!-- 3. 5개 영역별 위험도 분석 (막대 그래프) -->
+        <div class="part-analysis">
+            <h3 style="font-size: 16px; font-weight: 800; color: #0f172a; margin-bottom: 16px;">
+                📊 영역별 심리 위험도 분석
+            </h3>
+
+            <div class="part-item">
+                <div class="part-header">
+                    <span>1. 이용 습관 및 의존도</span>
+                    <span>{{ result.part_scores.PART1 }}점 / 25점</span>
+                </div>
+                <div class="bar-bg">
+                    <div class="bar-fill" style="width: {{ (result.part_scores.PART1 / 25) * 100 }}%;"></div>
+                </div>
+            </div>
+
+            <div class="part-item">
+                <div class="part-header">
+                    <span>2. 타인 비교 및 자존감</span>
+                    <span>{{ result.part_scores.PART2 }}점 / 25점</span>
+                </div>
+                <div class="bar-bg">
+                    <div class="bar-fill" style="width: {{ (result.part_scores.PART2 / 25) * 100 }}%;"></div>
+                </div>
+            </div>
+
+            <div class="part-item">
+                <div class="part-header">
+                    <span>3. 정서 및 감정 상태</span>
+                    <span>{{ result.part_scores.PART3 }}점 / 25점</span>
+                </div>
+                <div class="bar-bg">
+                    <div class="bar-fill" style="width: {{ (result.part_scores.PART3 / 25) * 100 }}%;"></div>
+                </div>
+            </div>
+
+            <div class="part-item">
+                <div class="part-header">
+                    <span>4. 통제력 및 소외 불안(FOMO)</span>
+                    <span>{{ result.part_scores.PART4 }}점 / 25점</span>
+                </div>
+                <div class="bar-bg">
+                    <div class="bar-fill" style="width: {{ (result.part_scores.PART4 / 25) * 100 }}%;"></div>
+                </div>
+            </div>
+
+            <div class="part-item">
+                <div class="part-header">
+                    <span>5. 신체 영향 및 대인관계</span>
+                    <span>{{ result.part_scores.PART5 }}점 / 25점</span>
+                </div>
+                <div class="bar-bg">
+                    <div class="bar-fill" style="width: {{ (result.part_scores.PART5 / 25) * 100 }}%;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. 맞춤 처방 솔루션 -->
+        <div style="margin-top: 32px;">
+            <h3 style="font-size: 16px; font-weight: 800; color: #0f172a; margin-bottom: 14px;">
+                💡 {{ result.nickname }}님을 위한 처방 솔루션
+            </h3>
+            {% for item in result.solutions %}
+            <div class="sol-card">
+                <div class="sol-icon">{{ item.icon }}</div>
+                <div>
+                    <div style="font-size: 14px; font-weight: 700; color: #1e293b;">{{ item.title }}</div>
+                    <div style="font-size: 13px; color: #64748b; margin-top: 2px;">{{ item.desc }}</div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
     </div>
-
-    <script>
-        // 백엔드 API 응답 데이터 표시
-        const res = JSON.parse(sessionStorage.getItem('result_data'));
-        if(res) {
-            document.getElementById('nickname').innerText = res.nickname || '사용자';
-            document.getElementById('mainType').innerText = res.main_type;
-            document.getElementById('ageGroup').innerText = res.age_group;
-            document.getElementById('percentile').innerText = res.percentile;
-            document.getElementById('totalCount').innerText = res.total_count;
-        } else {
-            alert("결과 데이터가 없습니다.");
-            window.location.href = '/';
-        }
-    </script>
 </body>
 </html>
