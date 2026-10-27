@@ -5,12 +5,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const startForm = document.getElementById('startForm');
 
     // ==========================================
-    // 1. index.html - 사용자 정보 세션 저장
+    // 1. index.html - 사용자 기본 정보 세션 저장
     // ==========================================
     if (startForm) {
         startForm.addEventListener('submit', (e) => {
             e.preventDefault();
-            isSurveyCompleted = true; // 페이지 이동 시 경고창 차단
+            isSurveyCompleted = true; // 이탈 경고 해제
 
             const name = document.getElementById('userName')?.value || '';
             const phone = document.getElementById('userPhone')?.value || '';
@@ -28,10 +28,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // 2. survey.html - 임시 저장 및 최종 제출
+    // 2. survey.html - 나이 수집, 임시 저장 및 최종 제출
     // ==========================================
     if (surveyForm) {
-        // 복구 로직
+        // 복구 로직 (localStorage)
         const savedAnswers = JSON.parse(localStorage.getItem('temp_sns_answers') || '{}');
         for (const [qName, val] of Object.entries(savedAnswers)) {
             const input = document.querySelector(`input[name="${qName}"][value="${val}"]`);
@@ -43,7 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('ageGroup').value = savedAge;
         }
 
-        // 실시간 저장
+        // 실시간 변경 시 임시 저장
         surveyForm.addEventListener('change', (e) => {
             if (e.target.type === 'radio') {
                 const answers = JSON.parse(localStorage.getItem('temp_sns_answers') || '{}');
@@ -54,7 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // 설문 제출
+        // 설문 제출 처리
         surveyForm.addEventListener('submit', async (e) => {
             e.preventDefault();
 
