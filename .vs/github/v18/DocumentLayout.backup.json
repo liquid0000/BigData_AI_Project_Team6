@@ -1,0 +1,59 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\joo\\OneDrive\\\uBC31\uC11D\uB300\uD559\uAD50\\\uBE45\uB370\uC774\uD130\uC640 AI\\\uD504\uB85C\uC81D\uD2B8\\BigData_AI_Project_Team6\\BigData_AI_Project_Team6\\github\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\joo\\OneDrive\\\uBC31\uC11D\uB300\uD559\uAD50\\\uBE45\uB370\uC774\uD130\uC640 AI\\\uD504\uB85C\uC81D\uD2B8\\BigData_AI_Project_Team6\\BigData_AI_Project_Team6\\github\\app.py||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:app.py||{8B382828-6202-11D1-8870-0000F87579D2}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 2,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{80c411e8-fd5e-4b16-914b-0d9d84172cc1}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{3ae79031-e1bc-11d0-8f78-00a0c9110057}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "app.py",
+              "DocumentMoniker": "C:\\Users\\joo\\OneDrive\\\uBC31\uC11D\uB300\uD559\uAD50\\\uBE45\uB370\uC774\uD130\uC640 AI\\\uD504\uB85C\uC81D\uD2B8\\BigData_AI_Project_Team6\\BigData_AI_Project_Team6\\github\\app.py",
+              "RelativeDocumentMoniker": "app.py",
+              "ToolTip": "C:\\Users\\joo\\OneDrive\\\uBC31\uC11D\uB300\uD559\uAD50\\\uBE45\uB370\uC774\uD130\uC640 AI\\\uD504\uB85C\uC81D\uD2B8\\BigData_AI_Project_Team6\\BigData_AI_Project_Team6\\github\\app.py",
+              "RelativeToolTip": "app.py",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
+              "WhenOpened": "2026-10-27T13:48:39.406Z",
+              "EditorCaption": ""
+            }
+          ]
+        },
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": -1,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{1c64b9c2-e352-428e-a56d-0ace190b99a6}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{e78e0cf7-2e4e-48a7-bf7f-a94d9330a3be}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
