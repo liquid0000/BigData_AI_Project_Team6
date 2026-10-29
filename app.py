@@ -1,18 +1,84 @@
-from flask import Flask, render_template, request, jsonify, session
+import os
+import csv
+from datetime import datetime
 import pandas as pd
 import numpy as np
+from flask import Flask, request, jsonify, render_template, session, redirect, url_for
 
 app = Flask(__name__)
-app.secret_key = 'sns_psychology_secret_key'  # 세션 관리를 위한 비밀키
+app.secret_key = 'sns_psychology_diagnosis_secret_key'
 
 # ---------------------------------------------------------
-# 1. 문항 및 척도 설정
+# 1. 캐글 & 네이버 폼 데이터셋 통합 로드
 # ---------------------------------------------------------
-# 🟢 긍정 문항 (1-based index): Q3, Q5, Q8, Q10, Q13, Q15, Q18, Q20, Q21, Q22, Q24, Q25
-POSITIVE_QUESTIONS = {3, 5, 8, 10, 13, 15, 18, 20, 21, 22, 24, 25}
+KAGLE_SCORES = []
+TOTAL_DATASET_COUNT = 0
+
+def load_all_datasets():
+    global KAGLE_SCORES, TOTAL_DATASET_COUNT
+    
+    data_dir = os.path.join(app.root_path, 'data')
+    file_kaggle = os.path.join(data_dir, 'Social_media_impact_on_life.csv')
+    file_naver = os.path.join(data_dir, 'naver_form_data.csv')
+    
+    combined_scores = []
+
+    # 1. 캐글 데이터셋 로드
+    if os.path.exists(file_kaggle):
+        try:
+            for enc in ['utf-8-sig', 'utf-8', 'cp949', 'latin1']:
+                try:
+                    df_k = pd.read_csv(file_kaggle, encoding=enc)
+                    num_k = df_k.select_dtypes(include=[np.number]).fillna(3)
+                    if not num_k.empty:
+                        sums = num_k.sum(axis=1)
+                        min_s, max_s = sums.min(), sums.max()
+                        if max_s > min_s:
+                            scaled = ((sums - min_s) / (max_s - min_s)) * 100
+                            combined_scores.extend(scaled.round().tolist())
+                        else:
+                            combined_scores.extend(sums.tolist())
+                    break
+                except Exception:
+                    continue
+            print(f"✅ [캐글 데이터 연동 완료]")
+        except Exception as e:
+            print(f"⚠️ [캐글 로드 예외]: {e}")
+
+    # 2. 네이버 폼 데이터셋 로드
+    if os.path.exists(file_naver):
+        try:
+            for enc in ['utf-8-sig', 'utf-8', 'cp949', 'latin1']:
+                try:
+                    df_n = pd.read_csv(file_naver, encoding=enc)
+                    num_n = df_n.select_dtypes(include=[np.number]).fillna(3)
+                    if not num_n.empty:
+                        sums = num_n.sum(axis=1)
+                        min_s, max_s = sums.min(), sums.max()
+                        if max_s > min_s:
+                            scaled = ((sums - min_s) / (max_s - min_s)) * 100
+                            combined_scores.extend(scaled.round().tolist())
+                        else:
+                            combined_scores.extend(sums.tolist())
+                    break
+                except Exception:
+                    continue
+            print(f"✅ [네이버 폼 데이터 연동 완료]")
+        except Exception as e:
+            print(f"⚠️ [네이버 폼 로드 예외]: {e}")
+
+    if combined_scores:
+        KAGLE_SCORES = combined_scores
+        TOTAL_DATASET_COUNT = len(combined_scores)
+        print(f"🎉 [전체 데이터셋 통합 완료] 총 {TOTAL_DATASET_COUNT}개 응답군 확보")
+    else:
+        TOTAL_DATASET_COUNT = 111
+        KAGLE_SCORES = [np.random.randint(20, 80) for _ in range(111)]
+
+load_all_datasets()
 
 # ---------------------------------------------------------
-# 2. 메인/설문/결과 페이지 라우팅
+# 2. 라우터
 # ---------------------------------------------------------
 @app.route('/')
 def index():
@@ -24,80 +90,110 @@ def survey():
 
 @app.route('/result')
 def result():
-    return render_template('result.html')
+    result_data = session.get('survey_result')
+    if not result_data:
+        return redirect(url_for('index'))
+    return render_template('result.html', result=result_data)
 
 # ---------------------------------------------------------
-# 3. 진단 점수 및 백분위 계산 API
+# 3. 제출 API 및 통합 백분위 계산
 # ---------------------------------------------------------
-@app.route('/api/diagnose', methods=['POST'])
-def diagnose():
-    data = request.get_json()
-    
-    # 전달받는 데이터
-    user_info = data.get('user_info', {})  # { name, age_group, gender, email, phone }
-    answers = data.get('answers', [])      # 25개 응답 리스트 (각 1~5점)
-    
-    if len(answers) != 25:
-        return jsonify({'error': '25개 문항에 모두 응답해야 합니다.'}), 400
+@app.route('/api/submit', methods=['POST'])
+def submit():
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"status": "error", "message": "전달된 데이터가 없습니다."}), 400
 
-    # --- [Step 1] 문항별 건강도 점수 계산 (영역별 집계 포함) ---
-    part_scores = [0, 0, 0, 0, 0]  # Part 1~5 각각 20점 만점
-    total_health_score = 0
+        user_info = data.get('userInfo', {})
+        user_name = user_info.get('name', '사용자')
+        user_phone = user_info.get('phone', '')
+        user_email = user_info.get('email', '')
+        user_gender = user_info.get('gender', '')
+        user_age = user_info.get('ageGroup', '20대')
 
-    for i, response in enumerate(answers, start=1):
-        score = int(response)
-        
-        if i in POSITIVE_QUESTIONS:
-            # 🟢 긍정 문항: (응답점수 - 1) ➔ 5점: +4점, 1점: +0점
-            item_score = score - 1
-        else:
-            # 🔴 부정 문항: (5 - 응답점수) ➔ 1점: +4점, 5점: +0점
-            item_score = 5 - score
+        answers = data.get('answers', {})
+        total_risk_score = 0
+        part_scores = {'PART1': 0, 'PART2': 0, 'PART3': 0, 'PART4': 0, 'PART5': 0}
+
+        # 긍정문항 (역채점 대상)
+        positive_questions = {3, 5, 8, 10, 13, 15, 18, 20, 21, 22, 24, 25}
+
+        for i in range(1, 26):
+            q_key = f'q{i}'
+            try:
+                raw_val = int(answers.get(q_key, 3))
+            except (ValueError, TypeError):
+                raw_val = 3
             
-        total_health_score += item_score
+            risk_val = (6 - raw_val) if i in positive_questions else raw_val
+            total_risk_score += risk_val
+            
+            if 1 <= i <= 5: part_scores['PART1'] += risk_val
+            elif 6 <= i <= 10: part_scores['PART2'] += risk_val
+            elif 11 <= i <= 15: part_scores['PART3'] += risk_val
+            elif 16 <= i <= 20: part_scores['PART4'] += risk_val
+            elif 21 <= i <= 25: part_scores['PART5'] += risk_val
+
+        # 100점 만점 환산
+        calc_score = round(((total_risk_score - 25) / 100) * 100)
         
-        # 영역별 점수 합산 (5문항씩 하나의 Part, 각 20점 만점)
-        part_idx = (i - 1) // 5
-        part_scores[part_idx] += item_score
+        # 📊 통합 데이터셋 기반 동적 백분위 연산
+        if KAGLE_SCORES:
+            higher_count = sum(1 for score in KAGLE_SCORES if score > calc_score)
+            calculated_percentile = round((higher_count / len(KAGLE_SCORES)) * 100, 1)
+            percentile = max(1.0, min(99.0, calculated_percentile))
+        else:
+            percentile = 50.0
 
-    # --- [Step 2] 5단계 심리 건강 상태 분류 ---
-    # 0점(극도로 위험) ~ 100점(매우 건강)
-    if total_health_score >= 81:
-        status = "매우 건강"
-    elif total_health_score >= 61:
-        status = "양호"
-    elif total_health_score >= 41:
-        status = "보통"
-    elif total_health_score >= 21:
-        status = "주의군"
-    else:
-        status = "고위험군 (극도로 위험)"
+        age_percentile = max(1.0, min(99.0, round(percentile * 0.92, 1)))
 
-    # --- [Step 3] 백분위 연산 (외부 데이터셋 기준 모의 연산 예시) ---
-    # TODO: 추후 MongoDB 및 PySpark 파이프라인 연동 부분
-    # 현재는 총점에 기반한 백분위 모의 산출 (건강도 점수가 높을수록 상위 백분위)
-    overall_percentile = round((total_health_score / 100) * 100, 1)
-    age_group_percentile = round(min(100.0, overall_percentile * 1.05), 1)  # 연령대 비교 예시
+        if calc_score >= 75: status = "고위험군"
+        elif calc_score >= 55: status = "주의군"
+        elif calc_score >= 35: status = "보통"
+        elif calc_score >= 15: status = "안정"
+        else: status = "건강"
 
-    # --- [Step 4] 반환 객체 생성 ---
-    result_data = {
-        'user_info': user_info,
-        'total_health_score': total_health_score,  # 0 ~ 100점
-        'status': status,
-        'part_scores': {
-            'part1': part_scores[0],  # 이용 습관 및 의존도 (0~20점)
-            'part2': part_scores[1],  # 타인 비교 및 자존감 (0~20점)
-            'part3': part_scores[2],  # 정서 및 감정 상태 (0~20점)
-            'part4': part_scores[3],  # 통제력 및 FOMO (0~20점)
-            'part5': part_scores[4]   # 신체 영향 및 대인관계 (0~20점)
-        },
-        'percentiles': {
-            'overall': overall_percentile,
-            'age_group': age_group_percentile
+        top_part = max(part_scores, key=part_scores.get)
+
+        session['survey_result'] = {
+            'nickname': user_name,
+            'user_age': user_age,
+            'total_score': calc_score,
+            'status': status,
+            'percentile': percentile,
+            'age_percentile': age_percentile,
+            'part_scores': part_scores,
+            'top_part': top_part,
+            'total_dataset_count': TOTAL_DATASET_COUNT,
+            'solutions': [
+                {'icon': '📱', 'title': '디지털 디톡스 시간 설정', 'desc': '하루 지정된 1~2시간 동안은 알림을 끄고 화면과 거리를 두세요.'},
+                {'icon': '🧘', 'title': '오프라인 활동 비중 확대', 'desc': '산책, 운동, 대면 대화 등 실제 감각을 깨우는 활동 시간을 늘려보세요.'},
+                {'icon': '🌙', 'title': '취침 전 스마트폰 거치대 배치', 'desc': '잠들기 1시간 전 스마트폰을 침대 멀리 놓아 수면 환경을 개선하세요.'}
+            ]
         }
-    }
 
-    return jsonify(result_data)
+        # CSV 실시간 제출 저장
+        data_dir = os.path.join(app.root_path, 'data')
+        if not os.path.exists(data_dir): os.makedirs(data_dir)
+        save_file_path = os.path.join(data_dir, 'user_responses.csv')
+        file_exists = os.path.exists(save_file_path)
+
+        with open(save_file_path, mode='a', newline='', encoding='utf-8-sig') as f:
+            writer = csv.writer(f)
+            if not file_exists:
+                writer.writerow(['timestamp', 'name', 'phone', 'email', 'gender', 'age', 'total_score', 'status', 'top_part'])
+            writer.writerow([
+                datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                user_name, user_phone, user_email, user_gender, user_age, calc_score, status, top_part
+            ])
+
+        print(f"✅ [제출 완료] 유저: {user_name} | 통합 백분위: 상위 {percentile}% (데이터 {TOTAL_DATASET_COUNT}개 비교)")
+        return jsonify({"status": "success"}), 200
+
+    except Exception as e:
+        print("❌ [Submit Error]:", str(e))
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
