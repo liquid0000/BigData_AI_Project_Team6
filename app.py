@@ -113,10 +113,10 @@ def submit():
         user_age = user_info.get('ageGroup', '20대')
 
         answers = data.get('answers', {})
-        total_risk_score = 0
+        total_health_score = 0
         part_scores = {'PART1': 0, 'PART2': 0, 'PART3': 0, 'PART4': 0, 'PART5': 0}
 
-        # 긍정문항 (역채점 대상)
+        # 긍정문항 목록
         positive_questions = {3, 5, 8, 10, 13, 15, 18, 20, 21, 22, 24, 25}
 
         for i in range(1, 26):
@@ -126,18 +126,20 @@ def submit():
             except (ValueError, TypeError):
                 raw_val = 3
             
-            risk_val = (6 - raw_val) if i in positive_questions else raw_val
-            total_risk_score += risk_val
+            # 🟢 건강도 환산 공식 적용
+            # 긍정문항: (raw_val - 1) | 부정문항: (5 - raw_val)
+            health_val = (raw_val - 1) if i in positive_questions else (5 - raw_val)
+            total_health_score += health_val
             
-            if 1 <= i <= 5: part_scores['PART1'] += risk_val
-            elif 6 <= i <= 10: part_scores['PART2'] += risk_val
-            elif 11 <= i <= 15: part_scores['PART3'] += risk_val
-            elif 16 <= i <= 20: part_scores['PART4'] += risk_val
-            elif 21 <= i <= 25: part_scores['PART5'] += risk_val
+            if 1 <= i <= 5: part_scores['PART1'] += health_val
+            elif 6 <= i <= 10: part_scores['PART2'] += health_val
+            elif 11 <= i <= 15: part_scores['PART3'] += health_val
+            elif 16 <= i <= 20: part_scores['PART4'] += health_val
+            elif 21 <= i <= 25: part_scores['PART5'] += health_val
 
-        # 100점 만점 환산
-        calc_score = round(((total_risk_score - 25) / 100) * 100)
-        
+        # 🟢 100점 만점 건강도 점수 (총 25문항 × 4점)
+        calc_score = total_health_score
+
         # 📊 통합 데이터셋 기반 동적 백분위 연산
         if KAGLE_SCORES:
             higher_count = sum(1 for score in KAGLE_SCORES if score > calc_score)
@@ -148,11 +150,12 @@ def submit():
 
         age_percentile = max(1.0, min(99.0, round(percentile * 0.92, 1)))
 
-        if calc_score >= 75: status = "고위험군"
-        elif calc_score >= 55: status = "주의군"
-        elif calc_score >= 35: status = "보통"
-        elif calc_score >= 15: status = "안정"
-        else: status = "건강"
+        # 🟢 건강도 기준 등급 판정 (80점 이상 = 매우 건강 / 20점 미만 = 고위험)
+        if calc_score >= 80: status = "매우 건강"
+        elif calc_score >= 60: status = "양호"
+        elif calc_score >= 40: status = "주의"
+        elif calc_score >= 20: status = "위험"
+        else: status = "고위험"
 
         top_part = max(part_scores, key=part_scores.get)
 
