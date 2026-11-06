@@ -1,28 +1,10 @@
 from flask import Flask, render_template, request, jsonify
-import sqlite3
+import db
 
 app = Flask(__name__)
-DB_NAME = 'sns_health.db'
 
-# 🟢 DB 테이블 초기화
-def init_db():
-    conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS users (
-            phone TEXT PRIMARY KEY,
-            name TEXT,
-            email TEXT,
-            age_group TEXT,
-            gender TEXT,
-            score INTEGER,
-            status TEXT
-        )
-    ''')
-    conn.commit()
-    conn.close()
-
-init_db()
+# MongoDB 인덱스 준비 (연락처 중복 방지, 개인정보 60일 자동 삭제)
+db.init_db()
 
 @app.route('/')
 def index():
@@ -42,41 +24,24 @@ def start_user():
     data = request.json or {}
     phone = data.get('phone')
     
-    if not phone:
-        return jsonify({'status': 'error', 'message': '연락처가 필요합니다.'}), 400
-
-    conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
-    
-    # 기존 사용자 확인
-    cursor.execute('SELECT phone, name, email, age_group, gender FROM users WHERE phone = ?', (phone,))
-    existing_user = cursor.fetchone()
-
-    if existing_user:
-        # DB에 기존 정보가 있다면 기존 데이터 반환
+        # 기존 사용자 확인 (이어하기)
+    existing = db.find_user(phone)
+    if existing:
         user_info = {
-            'phone': existing_user[0],
-            'name': existing_user[1],
-            'email': existing_user[2],
-            'ageGroup': existing_user[3],
-            'gender': existing_user[4]
+            'phone': existing['phone'],
+            'name': existing['name'],
+            'email': existing['email'],
+            'ageGroup': existing['age_group'],
+            'gender': existing['gender']
         }
-        conn.close()
         return jsonify({'status': 'success', 'is_existing': True, 'userInfo': user_info})
 
-    # 신규 사용자 DB 저장
+    # 신규 사용자 저장
     name = data.get('name')
     email = data.get('email')
     age_group = data.get('ageGroup')
     gender = data.get('gender')
-
-    cursor.execute('''
-        INSERT INTO users (phone, name, email, age_group, gender)
-        VALUES (?, ?, ?, ?, ?)
-    ''', (phone, name, email, age_group, gender))
-    
-    conn.commit()
-    conn.close()
+    db.create_user(phone, name, email, age_group, gender, data.get('guardianInfo'))
 
     user_info = {
         'phone': phone,
@@ -125,13 +90,15 @@ def submit():
     elif calc_score >= 20: status = "위험"
     else: status = "고위험"
 
-    # DB에 점수 및 결과 업데이트
-    if phone:
-        conn = sqlite3.connect(DB_NAME)
-        cursor = conn.cursor()
-        cursor.execute('UPDATE users SET score = ?, status = ? WHERE phone = ?', (calc_score, status, phone))
-        conn.commit()
-        conn.close()
+    # 응답 및 점수를 익명으로 저장 (이름·연락처 제외)
+    db.save_response(
+        user_info.get('ageGroup'),
+        user_info.get('gender'),
+        answers,
+        part_scores,
+        calc_score,
+        status
+    )
 
     return jsonify({
         'status': 'success',
