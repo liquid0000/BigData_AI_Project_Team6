@@ -49,3 +49,21 @@ def save_response(age_group, gender, answers, part_scores, score, status):
         "status": status,                   # 5단계 판정
         "created_at": datetime.now(timezone.utc),
     })
+
+def get_responses(fields=None):
+    #분석용(PySpark 등): responses 문서를 리스트로 반환
+    #fields 예: ["age_group", "score"] → 필요한 필드만 가져옴
+    #responses 필드: age_group, gender, answers(25문항 답), part_scores(영역별 0~20),
+    #                score(총점 0~100), status(5단계 판정), created_at
+    projection = {"_id": 0}
+    if fields:
+        projection.update({f: 1 for f in fields})
+    return list(responses.find({}, projection))
+
+
+def save_spark_result(records):
+    """PySpark 집계 결과를 spark_results 컬렉션에 저장 (이전 결과는 지우고 새로 저장)"""
+    spark_results = db["spark_results"]
+    spark_results.delete_many({})
+    if records:
+        spark_results.insert_many(records)
