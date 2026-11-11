@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SNS 심리 상태 진단 설문</title>
+    <title>SNS 사용 습관 진단 설문</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <style>
         .options-group {
@@ -77,12 +77,13 @@
 <body style="background-color: #f8fafc; padding: 40px 0;">
     <div class="container" style="max-width: 720px; margin: 0 auto; background: #ffffff; padding: 40px; border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.06);">
 
+        <!-- 🟢 서비스 명칭 반영 -->
         <header style="margin-bottom: 32px; text-align: center;">
-            <h1 style="font-size: 24px; color: #0f172a; font-weight: 800; margin-bottom: 8px;">📋 SNS 심리 상태 진단 설문</h1>
+            <h1 style="font-size: 24px; color: #0f172a; font-weight: 800; margin-bottom: 8px;">📋 SNS 사용 습관 진단 설문</h1>
             <p style="color: #64748b; font-size: 14px; margin: 0;">솔직하게 답변해 주실수록 정밀한 진단 리포트가 생성됩니다. (총 25문항)</p>
         </header>
 
-        <form id="surveyForm">
+        <form id="surveyForm" novalidate>
             <!-- 25개 문항 -->
             {% set questions = [
             {'q':'q1', 'text':'Q1. 특별한 목적 없이 무의식적으로 SNS 앱을 열어보나요?'},
@@ -113,12 +114,12 @@
             ] %}
 
             {% for item in questions %}
-            <div class="question-card" style="background: #fafafa; border: 1px solid #f1f5f9; padding: 20px; border-radius: 18px; margin-bottom: 20px;">
+            <div id="card_{{ item.q }}" class="question-card" style="background: #fafafa; border: 1px solid #f1f5f9; padding: 20px; border-radius: 18px; margin-bottom: 20px;">
                 <div style="font-size: 15px; font-weight: 700; color: #1e293b; margin-bottom: 14px;">{{ item.text }}</div>
 
                 <div class="options-group">
                     <div class="option-item">
-                        <input type="radio" id="{{ item.q }}_1" name="{{ item.q }}" value="1" required>
+                        <input type="radio" id="{{ item.q }}_1" name="{{ item.q }}" value="1">
                         <label for="{{ item.q }}_1" class="option-label">
                             <span class="circle-icon"></span>
                             <span>전혀 아니다</span>
@@ -165,42 +166,54 @@
     </div>
 
     <script>
-            document.getElementById('surveyForm').addEventListener('submit', function(e) {
-                e.preventDefault();
+                document.getElementById('surveyForm').addEventListener('submit', function(e) {
+                    e.preventDefault();
 
-                const userInfo = JSON.parse(sessionStorage.getItem('userInfo')) || {};
+                    const userInfo = JSON.parse(sessionStorage.getItem('userInfo')) || {};
 
-                if (!userInfo.phone) {
-                    window.location.href = '/';
-                    return;
-                }
-
-                const answers = {};
-                for (let i = 1; i <= 25; i++) {
-                    const selected = document.querySelector(`input[name="q${i}"]:checked`);
-                    if (selected) {
-                        answers[`q${i}`] = parseInt(selected.value);
+                    if (!userInfo.phone) {
+                        window.location.href = '/';
+                        return;
                     }
-                }
 
-                if (Object.keys(answers).length !== 25) {
-                    return;
-                }
+                    const answers = {};
+                    let firstUnansweredIndex = null;
 
-                fetch('/api/submit', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userInfo: userInfo, answers: answers })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        sessionStorage.setItem('resultData', JSON.stringify(data));
-                        window.location.href = '/result';
+                    // 1. 25개 문항에 대해 빠짐없이 체크했는지 순회 점검
+                    for (let i = 1; i <= 25; i++) {
+                        const selected = document.querySelector(`input[name="q${i}"]:checked`);
+                        if (selected) {
+                            answers[`q${i}`] = parseInt(selected.value);
+                        } else if (firstUnansweredIndex === null) {
+                            firstUnansweredIndex = i; // 안 푼 첫 번째 문항 번호 저장
+                        }
                     }
-                })
-                .catch(error => console.error('API Error:', error));
-            });
+
+                    // 2. 미선택 문항이 있을 경우 팝업 메시지 후 화면 스크롤
+                    if (firstUnansweredIndex !== null) {
+                        alert(`Q${firstUnansweredIndex}번 문항을 선택해 주세요!`);
+                        const targetCard = document.getElementById(`card_q${firstUnansweredIndex}`);
+                        if (targetCard) {
+                            targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                        return; // 백엔드 요청 중단
+                    }
+
+                    // 3. 25문항 모두 선택된 경우에만 백엔드 전송
+                    fetch('/api/submit', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ userInfo: userInfo, answers: answers })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            sessionStorage.setItem('resultData', JSON.stringify(data));
+                            window.location.href = '/result';
+                        }
+                    })
+                    .catch(error => console.error('API Error:', error));
+                });
     </script>
 </body>
 </html>

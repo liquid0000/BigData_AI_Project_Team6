@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SNS 심리 상태 진단 결과 리포트</title>
+    <title>SNS 사용 습관 진단 결과 리포트</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <style>
         body {
@@ -149,6 +149,27 @@
         .sol-icon {
             font-size: 26px;
         }
+
+        .restart-btn {
+            display: block;
+            width: 100%;
+            text-align: center;
+            padding: 16px 0;
+            font-size: 15px;
+            font-weight: 700;
+            color: #475569;
+            background-color: #f1f5f9;
+            border: none;
+            border-radius: 14px;
+            cursor: pointer;
+            text-decoration: none;
+            margin-top: 32px;
+            transition: background 0.2s ease;
+        }
+
+            .restart-btn:hover {
+                background-color: #e2e8f0;
+            }
     </style>
 </head>
 <body>
@@ -156,7 +177,7 @@
 
         <div style="text-align: center;">
             <span class="badge">진단 리포트</span>
-            <h1 class="user-title">{{ result.nickname }}님의 SNS 심리 상태 진단</h1>
+            <h1 class="user-title">{{ result.nickname }}님의 SNS 사용 습관 진단</h1>
             <p class="sub-text">
                 연령대: <strong>{{ result.user_age }}</strong> | 통합 데이터셋 <strong>{{ result.total_dataset_count }}개</strong> 실시간 정밀 비교
             </p>
@@ -176,7 +197,7 @@
 
         <!-- 2. 종합 점수 및 위험군 상태 -->
         <div class="score-banner">
-            <div style="font-size: 13px; opacity: 0.9;">종합 심리 위험도 점수</div>
+            <div style="font-size: 13px; opacity: 0.9;">종합 습관 위험도 점수</div>
             <div class="score-val">{{ result.total_score }}점</div>
             <div class="status-txt">진단 결과: {{ result.status }}</div>
         </div>
@@ -184,7 +205,7 @@
         <!-- 3. 5개 영역별 위험도 분석 (막대 그래프) -->
         <div class="part-analysis">
             <h3 style="font-size: 16px; font-weight: 800; color: #0f172a; margin-bottom: 16px;">
-                📊 영역별 심리 위험도 분석
+                📊 영역별 위험도 분석
             </h3>
 
             <div class="part-item">
@@ -253,6 +274,9 @@
             </div>
             {% endfor %}
         </div>
+
+        <!-- 5. 다시 진단하기 버튼 -->
+        <a href="/" class="restart-btn">🔄 다시 진단하기</a>
 
     </div>
 </body>
