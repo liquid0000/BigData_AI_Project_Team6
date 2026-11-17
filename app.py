@@ -18,23 +18,31 @@ def survey():
 def result():
     return render_template('result.html')
 
-# 🟢 [신규 API] 사용자 등록 및 기존 사용자 자동 조회 (이어하기)
+# 🟢 [신규 API] 사용자 등록 및 기존 사용자 자동 조회 (이어하기 및 기존 결과 불러오기)
 @app.route('/api/start-user', methods=['POST'])
 def start_user():
     data = request.json or {}
     phone = data.get('phone')
     
-        # 기존 사용자 확인 (이어하기)
+    # 기존 사용자 확인
     existing = db.find_user(phone)
     if existing:
         user_info = {
-            'phone': existing['phone'],
-            'name': existing['name'],
-            'email': existing['email'],
-            'ageGroup': existing['age_group'],
-            'gender': existing['gender']
+            'phone': existing.get('phone'),
+            'name': existing.get('name'),
+            'email': existing.get('email'),
+            'ageGroup': existing.get('age_group'),
+            'gender': existing.get('gender')
         }
-        return jsonify({'status': 'success', 'is_existing': True, 'userInfo': user_info})
+        # 이미 완료된 진단 결과가 저장되어 있는지 확인
+        last_result = existing.get('last_result')
+        return jsonify({
+            'status': 'success',
+            'is_existing': True,
+            'has_result': bool(last_result),
+            'userInfo': user_info,
+            'resultData': last_result
+        })
 
     # 신규 사용자 저장
     name = data.get('name')
@@ -50,7 +58,13 @@ def start_user():
         'ageGroup': age_group,
         'gender': gender
     }
-    return jsonify({'status': 'success', 'is_existing': False, 'userInfo': user_info})
+    return jsonify({
+        'status': 'success',
+        'is_existing': False,
+        'has_result': False,
+        'userInfo': user_info,
+        'resultData': None
+    })
 
 # 🟢 설문 제출 및 건강도 계산 API
 @app.route('/api/submit', methods=['POST'])
@@ -90,7 +104,13 @@ def submit():
     elif calc_score >= 20: status = "위험"
     else: status = "고위험"
 
-    # 응답 및 점수를 익명으로 저장 (이름·연락처 제외)
+    result_payload = {
+        'calc_score': calc_score,
+        'health_status': status,
+        'part_scores': part_scores
+    }
+
+    # 응답 및 점수를 익명으로 저장 (통계용)
     db.save_response(
         user_info.get('ageGroup'),
         user_info.get('gender'),
@@ -99,6 +119,12 @@ def submit():
         calc_score,
         status
     )
+
+    # 기존 사용자 조회 시 바로 결과를 불러올 수 있도록 사용자 문서에도 최신 결과 업데이트
+    if phone and hasattr(db, 'users_col'):
+        db.users_col.update_one({'phone': phone}, {'$set': {'last_result': result_payload}})
+    elif phone and hasattr(db, 'users'):
+        db.users.update_one({'phone': phone}, {'$set': {'last_result': result_payload}})
 
     return jsonify({
         'status': 'success',

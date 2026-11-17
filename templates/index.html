@@ -111,73 +111,91 @@
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const ageSelect = document.getElementById('ageGroup');
-            const guardianSection = document.getElementById('guardianSection');
-            const guardianInputs = [
-                document.getElementById('guardianName'),
-                document.getElementById('guardianPhone'),
-                document.getElementById('guardianRelation'),
-                document.getElementById('guardianAgree')
-            ];
+                document.addEventListener('DOMContentLoaded', function() {
+                    const ageSelect = document.getElementById('ageGroup');
+                    const guardianSection = document.getElementById('guardianSection');
+                    const guardianInputs = [
+                        document.getElementById('guardianName'),
+                        document.getElementById('guardianPhone'),
+                        document.getElementById('guardianRelation'),
+                        document.getElementById('guardianAgree')
+                    ];
 
-            // 1. 연령대 선택 변경 시 만 14세 미만 여부에 따라 보호자 동의란 토글
-            ageSelect.addEventListener('change', function() {
-                if (this.value === '만 14세 미만') {
-                    guardianSection.classList.remove('hidden');
-                    guardianInputs.forEach(input => input.setAttribute('required', 'true'));
-                } else {
-                    guardianSection.classList.add('hidden');
-                    guardianInputs.forEach(input => {
-                        input.removeAttribute('required');
-                        if (input.type === 'checkbox') input.checked = false;
-                        else input.value = '';
-                    });
-                }
-            });
+                    // 1. 연령대 선택 변경 시 만 14세 미만 여부에 따라 보호자 동의란 토글
+                    if (ageSelect && guardianSection) {
+                        ageSelect.addEventListener('change', function(e) {
+                            const target = e.target;
+                            const selectedAge = target && 'value' in target ? String(target.value) : '';
 
-            // 2. 폼 제출 시 백엔드 API 요청 처리
-            document.getElementById('startForm').addEventListener('submit', function(e) {
-                e.preventDefault();
-
-                const name = document.getElementById('userName').value;
-                const phone = document.getElementById('userPhone').value;
-                const ageGroup = document.getElementById('ageGroup').value;
-                const gender = document.querySelector('input[name="userGender"]:checked')?.value || '';
-
-                // 기본 요청 데이터 구성 (이메일 항목 제외)
-                const payload = {
-                    name: name,
-                    phone: phone,
-                    ageGroup: ageGroup,
-                    gender: gender
-                };
-
-                // 만 14세 미만일 경우 보호자 정보를 payload에 함께 수집
-                if (ageGroup === '만 14세 미만') {
-                    payload.guardianInfo = {
-                        name: document.getElementById('guardianName').value,
-                        phone: document.getElementById('guardianPhone').value,
-                        relation: document.getElementById('guardianRelation').value
-                    };
-                }
-
-                // 백엔드 DB에 유저 등록/조회 요청
-                fetch('/api/start-user', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        sessionStorage.setItem('userInfo', JSON.stringify(data.userInfo));
-                        window.location.href = '/survey';
+                            if (selectedAge === '만 14세 미만') {
+                                guardianSection.classList.remove('hidden');
+                                guardianInputs.forEach(input => {
+                                    if (input) input.setAttribute('required', 'true');
+                                });
+                            } else {
+                                guardianSection.classList.add('hidden');
+                                guardianInputs.forEach(input => {
+                                    if (input) {
+                                        input.removeAttribute('required');
+                                        if ('checked' in input) input.checked = false;
+                                        if ('value' in input) input.value = '';
+                                    }
+                                });
+                            }
+                        });
                     }
-                })
-                .catch(err => console.error('Error:', err));
-            });
-        });
+
+                    // 2. 폼 제출 시 백엔드 API 요청 처리 (FormData 활용으로 TS2339 경고 원천 방지)
+                    const startForm = document.getElementById('startForm');
+                    if (startForm instanceof HTMLFormElement) {
+                        startForm.addEventListener('submit', function(e) {
+                            e.preventDefault();
+
+                            const formData = new FormData(startForm);
+                            const name = String(formData.get('userName') || '');
+                            const phone = String(formData.get('userPhone') || '');
+                            const ageGroup = String(formData.get('ageGroup') || '');
+                            const gender = String(formData.get('userGender') || '');
+
+                            const guardianInfo = ageGroup === '만 14세 미만' ? {
+                                name: String(formData.get('guardianName') || ''),
+                                phone: String(formData.get('guardianPhone') || ''),
+                                relation: String(formData.get('guardianRelation') || '')
+                            } : null;
+
+                            const payload = {
+                                name: name,
+                                phone: phone,
+                                ageGroup: ageGroup,
+                                gender: gender,
+                                guardianInfo: guardianInfo
+                            };
+
+                            // 백엔드 DB에 유저 등록/조회 요청
+                            fetch('/api/start-user', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(payload)
+                            })
+                            .then(res => res.json())
+                            .then(data => {
+                                if (data.status === 'success') {
+                                    sessionStorage.setItem('userInfo', JSON.stringify(data.userInfo));
+
+                                    // 기존 진단 완료 기록이 있으면 설문을 건너뛰고 결과창으로 바로 이동
+                                    if (data.is_existing && data.has_result && data.resultData) {
+                                        sessionStorage.setItem('resultData', JSON.stringify(data.resultData));
+                                        alert('기존 진단 기록이 확인되어 결과 리포트로 이동합니다.');
+                                        window.location.href = '/result';
+                                    } else {
+                                        window.location.href = '/survey';
+                                    }
+                                }
+                            })
+                            .catch(err => console.error('Error:', err));
+                        });
+                    }
+                });
     </script>
 </body>
 </html>
