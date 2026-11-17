@@ -151,15 +151,15 @@
             font-size: 26px;
         }
 
-        .restart-btn {
+        .finish-btn {
             display: block;
             width: 100%;
             text-align: center;
             padding: 16px 0;
             font-size: 15px;
             font-weight: 700;
-            color: #475569;
-            background-color: #f1f5f9;
+            color: #ffffff;
+            background-color: #0f172a;
             border: none;
             border-radius: 14px;
             cursor: pointer;
@@ -168,8 +168,8 @@
             transition: background 0.2s ease;
         }
 
-            .restart-btn:hover {
-                background-color: #e2e8f0;
+            .finish-btn:hover {
+                background-color: #1e293b;
             }
     </style>
 </head>
@@ -268,8 +268,8 @@
             <div id="solutionsContainer"></div>
         </div>
 
-        <!-- 5. 다시 진단하기 버튼 -->
-        <a href="/" class="restart-btn">🔄 다시 진단하기</a>
+        <!-- 5. 진단 끝내기 버튼 -->
+        <button type="button" id="finishBtn" class="finish-btn">✅ 진단 끝내기</button>
 
     </div>
 
@@ -306,7 +306,7 @@
                     setText('totalScoreDisplay', totalScore);
                     setText('statusDisplay', healthStatus);
 
-                    // 3. 백분위 통계 매핑 (백엔드 값이 없으면 점수 기반 임시 환산치 표시)
+                    // 3. 백분위 통계 매핑
                     const fallbackPercentile = Math.max(1, Math.min(99, 100 - totalScore));
                     const percentile = resultData.percentile ?? fallbackPercentile;
                     const agePercentile = resultData.age_percentile ?? fallbackPercentile;
@@ -359,6 +359,16 @@
                                 </div>
                             `;
                             solutionsContainer.appendChild(card);
+                        });
+                    }
+
+                    // 6. 진단 끝내기 버튼 동작 (임시 세션 데이터 정리 후 메인으로 이동)
+                    const finishBtn = document.getElementById('finishBtn');
+                    if (finishBtn) {
+                        finishBtn.addEventListener('click', function() {
+                            sessionStorage.removeItem('userInfo');
+                            sessionStorage.removeItem('resultData');
+                            window.location.href = '/';
                         });
                     }
                 });
