@@ -6,7 +6,6 @@
     <title>SNS 사용 습관 진단 - 정보 입력</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <style>
-        /* 법정대리인 섹션 숨김 클래스 */
         .hidden {
             display: none !important;
         }
@@ -121,7 +120,6 @@
                         document.getElementById('guardianAgree')
                     ];
 
-                    // 1. 연령대 선택 변경 시 만 14세 미만 여부에 따라 보호자 동의란 토글
                     if (ageSelect && guardianSection) {
                         ageSelect.addEventListener('change', function(e) {
                             const target = e.target;
@@ -145,7 +143,6 @@
                         });
                     }
 
-                    // 2. 폼 제출 시 백엔드 API 요청 처리 (FormData 활용으로 TS2339 경고 원천 방지)
                     const startForm = document.getElementById('startForm');
                     if (startForm instanceof HTMLFormElement) {
                         startForm.addEventListener('submit', function(e) {
@@ -171,7 +168,6 @@
                                 guardianInfo: guardianInfo
                             };
 
-                            // 백엔드 DB에 유저 등록/조회 요청
                             fetch('/api/start-user', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
@@ -182,10 +178,9 @@
                                 if (data.status === 'success') {
                                     sessionStorage.setItem('userInfo', JSON.stringify(data.userInfo));
 
-                                    // 기존 진단 완료 기록이 있으면 설문을 건너뛰고 결과창으로 바로 이동
-                                    if (data.is_existing && data.has_result && data.resultData) {
+                                    // 등록된 전화번호면 설문을 건너뛰고 결과창으로 즉시 이동
+                                    if (data.is_existing && data.resultData) {
                                         sessionStorage.setItem('resultData', JSON.stringify(data.resultData));
-                                        alert('기존 진단 기록이 확인되어 결과 리포트로 이동합니다.');
                                         window.location.href = '/result';
                                     } else {
                                         window.location.href = '/survey';
