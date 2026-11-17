@@ -234,72 +234,84 @@
 
     <script>
                 document.addEventListener('DOMContentLoaded', function() {
-                    // 1. 브라우저 저장소에서 사용자 정보와 설문 결과 데이터 로드
-                    const userInfo = JSON.parse(sessionStorage.getItem('userInfo')) || {};
-                    const resultData = JSON.parse(sessionStorage.getItem('resultData')) || {};
+                    // 1. 브라우저 저장소에서 안전하게 문자열을 꺼내어 파싱 (TS2345 해결)
+                    const rawUserInfo = sessionStorage.getItem('userInfo');
+                    const rawResultData = sessionStorage.getItem('resultData');
 
-                    // 데이터가 없는 비정상 접근 시 첫 화면으로 이동
+                    const userInfo = rawUserInfo ? JSON.parse(rawUserInfo) : {};
+                    const resultData = rawResultData ? JSON.parse(rawResultData) : {};
+
                     if (!resultData || Object.keys(resultData).length === 0) {
                         alert('진단 데이터가 없습니다. 설문을 먼저 진행해 주세요.');
                         window.location.href = '/';
                         return;
                     }
 
-                    // 2. 사용자 기본 정보 매핑 (userInfo)
+                    // 텍스트 안전 주입용 헬퍼 함수 (TS2531 해결)
+                    const setText = (id = '', value = '') => {
+                        const el = document.getElementById(id);
+                        if (el) el.textContent = String(value);
+                    };
+
+                    // 2. 사용자 기본 정보 매핑
                     const userName = userInfo.name || '참여자';
                     const userAge = userInfo.ageGroup || '미지정';
-                    document.getElementById('userNameDisplay').textContent = userName;
-                    document.getElementById('solUserName').textContent = userName;
-                    document.getElementById('userAgeDisplay').textContent = userAge;
+                    setText('userNameDisplay', userName);
+                    setText('solUserName', userName);
+                    setText('userAgeDisplay', userAge);
 
                     // 3. 백엔드 응답 필드명(calc_score, health_status) 매핑
                     const totalScore = resultData.calc_score ?? resultData.total_score ?? 0;
                     const healthStatus = resultData.health_status || resultData.status || '정상';
 
-                    document.getElementById('totalScoreDisplay').textContent = totalScore;
-                    document.getElementById('statusDisplay').textContent = healthStatus;
+                    setText('totalScoreDisplay', totalScore);
+                    setText('statusDisplay', healthStatus);
 
                     // 4. 5개 파트별 점수 및 막대 그래프 애니메이션 적용
                     const partScores = resultData.part_scores || {};
                     for (let i = 1; i <= 5; i++) {
                         const score = partScores[`PART${i}`] || 0;
-                        document.getElementById(`scorePart${i}`).textContent = score;
+                        setText(`scorePart${i}`, score);
 
-                        // 막대 너비 계산 (20점 만점 기준 퍼센트, 최대 100% 제한)
                         const percent = Math.min(Math.round((score / 20) * 100), 100);
-                        setTimeout(() => {
-                            document.getElementById(`barPart${i}`).style.width = `${percent}%`;
-                        }, 100);
+                        const barEl = document.getElementById(`barPart${i}`);
+                        if (barEl) {
+                            setTimeout(() => {
+                                barEl.style.width = `${percent}%`;
+                            }, 100);
+                        }
                     }
 
-                    // 5. 진단 상태에 따른 맞춤 솔루션 자동 생성
+                    // 5. 진단 상태에 따른 맞춤 솔루션 자동 생성 (TS18047 해결)
                     const solutionsContainer = document.getElementById('solutionsContainer');
-                    let solutions = [
-                        { icon: '🔕', title: '불필요한 푸시 알림 끄기', desc: '무의식적인 앱 접속을 줄이기 위해 꼭 필요한 연락 앱 외 알림을 비활성화해 보세요.' },
-                        { icon: '🌙', title: '취침 1시간 전 스마트폰 거리두기', desc: '수면의 질을 높이고 피로를 줄이기 위해 잠들기 전에는 스마트폰을 침대 밖에 두세요.' },
-                        { icon: '🌱', title: '오프라인 취미 및 대면 소통 늘리기', desc: '온라인 피드 대신 산책, 독서, 지인과의 직접 만남에 시간을 투자해 보세요.' }
-                    ];
+                    if (solutionsContainer) {
+                        let solutions = [
+                            { icon: '🔕', title: '불필요한 푸시 알림 끄기', desc: '무의식적인 앱 접속을 줄이기 위해 꼭 필요한 연락 앱 외 알림을 비활성화해 보세요.' },
+                            { icon: '🌙', title: '취침 1시간 전 스마트폰 거리두기', desc: '수면의 질을 높이고 피로를 줄이기 위해 잠들기 전에는 스마트폰을 침대 밖에 두세요.' },
+                            { icon: '🌱', title: '오프라인 취미 및 대면 소통 늘리기', desc: '온라인 피드 대신 산책, 독서, 지인과의 직접 만남에 시간을 투자해 보세요.' }
+                        ];
 
-                    if (totalScore >= 70) {
-                        solutions.unshift({
-                            icon: '🚨',
-                            title: '디지털 디톡스 타임 설정하기',
-                            desc: '하루 중 SNS를 전혀 사용하지 않는 시간(예: 식사 시간, 저녁 9시 이후)을 정해 의식적으로 휴식하세요.'
+                        if (totalScore >= 70) {
+                            solutions.unshift({
+                                icon: '🚨',
+                                title: '디지털 디톡스 타임 설정하기',
+                                desc: '하루 중 SNS를 전혀 사용하지 않는 시간(예: 식사 시간, 저녁 9시 이후)을 정해 의식적으로 휴식하세요.'
+                            });
+                        }
+
+                        solutions.forEach(item => {
+                            const card = document.createElement('div');
+                            card.className = 'sol-card';
+                            card.innerHTML = `
+                                <div class="sol-icon">${item.icon}</div>
+                                <div>
+                                    <div style="font-size: 14px; font-weight: 700; color: #1e293b;">${item.title}</div>
+                                    <div style="font-size: 13px; color: #64748b; margin-top: 2px;">${item.desc}</div>
+                                </div>
+                            `;
+                            solutionsContainer.appendChild(card);
                         });
                     }
-
-                    solutions.forEach(item => {
-                        const card = document.createElement('div');
-                        card.className = 'sol-card';
-                        card.innerHTML = `
-                            <div class="sol-icon">${item.icon}</div>
-                            <div>
-                                <div style="font-size: 14px; font-weight: 700; color: #1e293b;">${item.title}</div>
-                                <div style="font-size: 13px; color: #64748b; margin-top: 2px;">${item.desc}</div>
-                            </div>
-                        `;
-                        solutionsContainer.appendChild(card);
-                    });
                 });
     </script>
 </body>
