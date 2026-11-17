@@ -233,380 +233,74 @@
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // 1. 브라우저 저장소에서 사용자 정보와 설문 결과 데이터 로드
-            const userInfo = JSON.parse(sessionStorage.getItem('userInfo')) || {};
-            const resultData = JSON.parse(sessionStorage.getItem('resultData')) || {};
+                document.addEventListener('DOMContentLoaded', function() {
+                    // 1. 브라우저 저장소에서 사용자 정보와 설문 결과 데이터 로드
+                    const userInfo = JSON.parse(sessionStorage.getItem('userInfo')) || {};
+                    const resultData = JSON.parse(sessionStorage.getItem('resultData')) || {};
 
-            // 데이터가 없는 비정상 접근 시 첫 화면으로 이동
-            if (!resultData || Object.keys(resultData).length === 0) {
-                alert('진단 데이터가 없습니다. 설문을 먼저 진행해 주세요.');
-                window.location.href = '/';
-                return;
-            }
+                    // 데이터가 없는 비정상 접근 시 첫 화면으로 이동
+                    if (!resultData || Object.keys(resultData).length === 0) {
+                        alert('진단 데이터가 없습니다. 설문을 먼저 진행해 주세요.');
+                        window.location.href = '/';
+                        return;
+                    }
 
-            // 2. 사용자 기본 정보 매핑 (userInfo)
-            const userName = userInfo.name || '참여자';
-            const userAge = userInfo.ageGroup || '미지정';
-            document.getElementById('userNameDisplay').textContent = userName;
-            document.getElementById('solUserName').textContent = userName;
-            document.getElementById('userAgeDisplay').textContent = userAge;
+                    // 2. 사용자 기본 정보 매핑 (userInfo)
+                    const userName = userInfo.name || '참여자';
+                    const userAge = userInfo.ageGroup || '미지정';
+                    document.getElementById('userNameDisplay').textContent = userName;
+                    document.getElementById('solUserName').textContent = userName;
+                    document.getElementById('userAgeDisplay').textContent = userAge;
 
-            // 3. 백엔드 응답 필드명(calc_score, health_status) 매핑
-            const totalScore = resultData.calc_score ?? resultData.total_score ?? 0;
-            const healthStatus = resultData.health_status || resultData.status || '정상';
+                    // 3. 백엔드 응답 필드명(calc_score, health_status) 매핑
+                    const totalScore = resultData.calc_score ?? resultData.total_score ?? 0;
+                    const healthStatus = resultData.health_status || resultData.status || '정상';
 
-            document.getElementById('totalScoreDisplay').textContent = totalScore;
-            document.getElementById('statusDisplay').textContent = healthStatus;
+                    document.getElementById('totalScoreDisplay').textContent = totalScore;
+                    document.getElementById('statusDisplay').textContent = healthStatus;
 
-            // 4. 5개 파트별 점수 및 막대 그래프 애니메이션 적용
-            const partScores = resultData.part_scores || {};
-            for (let i = 1; i <= 5; i++) {
-                const score = partScores[`PART${i}`] || 0;
-                document.getElementById(`scorePart${i}`).textContent = score;
+                    // 4. 5개 파트별 점수 및 막대 그래프 애니메이션 적용
+                    const partScores = resultData.part_scores || {};
+                    for (let i = 1; i <= 5; i++) {
+                        const score = partScores[`PART${i}`] || 0;
+                        document.getElementById(`scorePart${i}`).textContent = score;
 
-                // 막대 너비 계산 (20점 만점 기준 퍼센트, 최대 100% 제한)
-                const percent = Math.min(Math.round((score / 20) * 100), 100);
-                setTimeout(() => {
-                    document.getElementById(`barPart${i}`).style.width = `${percent}%`;
-                }, 100);
-            }
+                        // 막대 너비 계산 (20점 만점 기준 퍼센트, 최대 100% 제한)
+                        const percent = Math.min(Math.round((score / 20) * 100), 100);
+                        setTimeout(() => {
+                            document.getElementById(`barPart${i}`).style.width = `${percent}%`;
+                        }, 100);
+                    }
 
-            // 5. 진단 상태에 따른 맞춤 솔루션 자동 생성
-            const solutionsContainer = document.getElementById('solutionsContainer');
-            let solutions = [
-                { icon: '🔕', title: '불필요한 푸시 알림 끄기', desc: '무의식적인 앱 접속을 줄이기 위해 꼭 필요한 연락 앱 외 알림을 비활성화해 보세요.' },
-                { icon: '🌙', title: '취침 1시간 전 스마트폰 거리두기', desc: '수면의 질을 높이고 피로를 줄이기 위해 잠들기 전에는 스마트폰을 침대 밖에 두세요.' },
-                { icon: '🌱', title: '오프라인 취미 및 대면 소통 늘리기', desc: '온라인 피드 대신 산책, 독서, 지인과의 직접 만남에 시간을 투자해 보세요.' }
-            ];
+                    // 5. 진단 상태에 따른 맞춤 솔루션 자동 생성
+                    const solutionsContainer = document.getElementById('solutionsContainer');
+                    let solutions = [
+                        { icon: '🔕', title: '불필요한 푸시 알림 끄기', desc: '무의식적인 앱 접속을 줄이기 위해 꼭 필요한 연락 앱 외 알림을 비활성화해 보세요.' },
+                        { icon: '🌙', title: '취침 1시간 전 스마트폰 거리두기', desc: '수면의 질을 높이고 피로를 줄이기 위해 잠들기 전에는 스마트폰을 침대 밖에 두세요.' },
+                        { icon: '🌱', title: '오프라인 취미 및 대면 소통 늘리기', desc: '온라인 피드 대신 산책, 독서, 지인과의 직접 만남에 시간을 투자해 보세요.' }
+                    ];
 
-            if (totalScore >= 70) {
-                solutions.unshift({
-                    icon: '🚨',
-                    title: '디지털 디톡스 타임 설정하기',
-                    desc: '하루 중 SNS를 전혀 사용하지 않는 시간(예: 식사 시간, 저녁 9시 이후)을 정해 의식적으로 휴식하세요.'
+                    if (totalScore >= 70) {
+                        solutions.unshift({
+                            icon: '🚨',
+                            title: '디지털 디톡스 타임 설정하기',
+                            desc: '하루 중 SNS를 전혀 사용하지 않는 시간(예: 식사 시간, 저녁 9시 이후)을 정해 의식적으로 휴식하세요.'
+                        });
+                    }
+
+                    solutions.forEach(item => {
+                        const card = document.createElement('div');
+                        card.className = 'sol-card';
+                        card.innerHTML = `
+                            <div class="sol-icon">${item.icon}</div>
+                            <div>
+                                <div style="font-size: 14px; font-weight: 700; color: #1e293b;">${item.title}</div>
+                                <div style="font-size: 13px; color: #64748b; margin-top: 2px;">${item.desc}</div>
+                            </div>
+                        `;
+                        solutionsContainer.appendChild(card);
+                    });
                 });
-            }
-
-            solutions.forEach(item => {
-                const card = document.createElement('div');
-                card.className = 'sol-card';
-                card.innerHTML = `
-                    <div class="sol-icon">${item.icon}</div>
-                    <div>
-                        <div style="font-size: 14px; font-weight: 700; color: #1e293b;">${item.title}</div>
-                        <div style="font-size: 13px; color: #64748b; margin-top: 2px;">${item.desc}</div>
-                    </div>
-                `;
-                solutionsContainer.appendChild(card);
-            });
-        });
-    </script>
-</body>
-</html>
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SNS 사용 습관 진단 결과 리포트</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <style>
-        body {
-            background-color: #f8fafc;
-            font-family: 'Pretendard', -apple-system, sans-serif;
-            padding: 50px 0;
-            margin: 0;
-        }
-
-        .result-card {
-            max-width: 680px;
-            margin: 0 auto;
-            background: #ffffff;
-            padding: 40px;
-            border-radius: 24px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.06);
-            box-sizing: border-box;
-        }
-
-        .badge {
-            display: inline-block;
-            padding: 6px 14px;
-            background: #eef2ff;
-            color: #4f46e5;
-            font-size: 13px;
-            font-weight: 700;
-            border-radius: 20px;
-            margin-bottom: 12px;
-        }
-
-        .user-title {
-            font-size: 24px;
-            font-weight: 800;
-            color: #0f172a;
-            margin: 0 0 6px 0;
-        }
-
-        .sub-text {
-            color: #64748b;
-            font-size: 14px;
-            margin: 0 0 28px 0;
-        }
-
-        /* 종합 위험도 배너 */
-        .score-banner {
-            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-            color: #ffffff;
-            padding: 28px;
-            border-radius: 20px;
-            text-align: center;
-            margin-bottom: 32px;
-        }
-
-        .score-val {
-            font-size: 46px;
-            font-weight: 900;
-            margin: 6px 0;
-        }
-
-        .status-txt {
-            display: inline-block;
-            padding: 6px 16px;
-            background: rgba(255,255,255,0.2);
-            border-radius: 12px;
-            font-size: 14px;
-            font-weight: 700;
-        }
-
-        /* 5개 파트별 위험도 막대 그래프 */
-        .part-analysis {
-            margin-bottom: 32px;
-        }
-
-        .part-item {
-            margin-bottom: 18px;
-        }
-
-        .part-header {
-            display: flex;
-            justify-content: space-between;
-            font-size: 13px;
-            font-weight: 700;
-            color: #334155;
-            margin-bottom: 6px;
-        }
-
-        .bar-bg {
-            width: 100%;
-            height: 10px;
-            background: #e2e8f0;
-            border-radius: 5px;
-            overflow: hidden;
-        }
-
-        .bar-fill {
-            height: 100%;
-            background: #4f46e5;
-            border-radius: 5px;
-            width: 0%;
-            transition: width 0.8s ease;
-        }
-
-        /* 처방 솔루션 카드 */
-        .sol-card {
-            background: #f8fafc;
-            border: 1.5px solid #f1f5f9;
-            padding: 18px 20px;
-            border-radius: 16px;
-            margin-bottom: 12px;
-            display: flex;
-            gap: 16px;
-            align-items: center;
-        }
-
-        .sol-icon {
-            font-size: 26px;
-        }
-
-        .restart-btn {
-            display: block;
-            width: 100%;
-            text-align: center;
-            padding: 16px 0;
-            font-size: 15px;
-            font-weight: 700;
-            color: #475569;
-            background-color: #f1f5f9;
-            border: none;
-            border-radius: 14px;
-            cursor: pointer;
-            text-decoration: none;
-            margin-top: 32px;
-            transition: background 0.2s ease;
-        }
-
-            .restart-btn:hover {
-                background-color: #e2e8f0;
-            }
-    </style>
-</head>
-<body>
-    <div class="result-card">
-
-        <div style="text-align: center;">
-            <span class="badge">진단 리포트</span>
-            <h1 class="user-title"><span id="userNameDisplay">사용자</span>님의 SNS 사용 습관 진단</h1>
-            <p class="sub-text">
-                연령대: <strong id="userAgeDisplay">-</strong> | 25문항 정밀 진단 분석 결과
-            </p>
-        </div>
-
-        <!-- 1. 종합 점수 및 위험군 상태 -->
-        <div class="score-banner">
-            <div style="font-size: 13px; opacity: 0.9;">종합 습관 위험도 점수</div>
-            <div class="score-val"><span id="totalScoreDisplay">0</span>점</div>
-            <div class="status-txt">진단 결과: <span id="statusDisplay">분석 중...</span></div>
-        </div>
-
-        <!-- 2. 5개 영역별 위험도 분석 (막대 그래프) -->
-        <div class="part-analysis">
-            <h3 style="font-size: 16px; font-weight: 800; color: #0f172a; margin-bottom: 16px;">
-                📊 영역별 위험도 분석
-            </h3>
-
-            <div class="part-item">
-                <div class="part-header">
-                    <span>1. 이용 습관 및 의존도</span>
-                    <span><span id="scorePart1">0</span>점 / 20점</span>
-                </div>
-                <div class="bar-bg">
-                    <div id="barPart1" class="bar-fill"></div>
-                </div>
-            </div>
-
-            <div class="part-item">
-                <div class="part-header">
-                    <span>2. 타인 비교 및 자존감</span>
-                    <span><span id="scorePart2">0</span>점 / 20점</span>
-                </div>
-                <div class="bar-bg">
-                    <div id="barPart2" class="bar-fill"></div>
-                </div>
-            </div>
-
-            <div class="part-item">
-                <div class="part-header">
-                    <span>3. 정서 및 감정 상태</span>
-                    <span><span id="scorePart3">0</span>점 / 20점</span>
-                </div>
-                <div class="bar-bg">
-                    <div id="barPart3" class="bar-fill"></div>
-                </div>
-            </div>
-
-            <div class="part-item">
-                <div class="part-header">
-                    <span>4. 통제력 및 소외 불안(FOMO)</span>
-                    <span><span id="scorePart4">0</span>점 / 20점</span>
-                </div>
-                <div class="bar-bg">
-                    <div id="barPart4" class="bar-fill"></div>
-                </div>
-            </div>
-
-            <div class="part-item">
-                <div class="part-header">
-                    <span>5. 신체 영향 및 대인관계</span>
-                    <span><span id="scorePart5">0</span>점 / 20점</span>
-                </div>
-                <div class="bar-bg">
-                    <div id="barPart5" class="bar-fill"></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- 3. 맞춤 처방 솔루션 -->
-        <div style="margin-top: 32px;">
-            <h3 style="font-size: 16px; font-weight: 800; color: #0f172a; margin-bottom: 14px;">
-                💡 <span id="solUserName">사용자</span>님을 위한 처방 솔루션
-            </h3>
-            <div id="solutionsContainer"></div>
-        </div>
-
-        <!-- 4. 다시 진단하기 버튼 -->
-        <a href="/" class="restart-btn">🔄 다시 진단하기</a>
-
-    </div>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // 1. 브라우저 저장소에서 사용자 정보와 설문 결과 데이터 로드
-            const userInfo = JSON.parse(sessionStorage.getItem('userInfo')) || {};
-            const resultData = JSON.parse(sessionStorage.getItem('resultData')) || {};
-
-            // 데이터가 없는 비정상 접근 시 첫 화면으로 이동
-            if (!resultData || Object.keys(resultData).length === 0) {
-                alert('진단 데이터가 없습니다. 설문을 먼저 진행해 주세요.');
-                window.location.href = '/';
-                return;
-            }
-
-            // 2. 사용자 기본 정보 매핑 (userInfo)
-            const userName = userInfo.name || '참여자';
-            const userAge = userInfo.ageGroup || '미지정';
-            document.getElementById('userNameDisplay').textContent = userName;
-            document.getElementById('solUserName').textContent = userName;
-            document.getElementById('userAgeDisplay').textContent = userAge;
-
-            // 3. 백엔드 응답 필드명(calc_score, health_status) 매핑
-            const totalScore = resultData.calc_score ?? resultData.total_score ?? 0;
-            const healthStatus = resultData.health_status || resultData.status || '정상';
-
-            document.getElementById('totalScoreDisplay').textContent = totalScore;
-            document.getElementById('statusDisplay').textContent = healthStatus;
-
-            // 4. 5개 파트별 점수 및 막대 그래프 애니메이션 적용
-            const partScores = resultData.part_scores || {};
-            for (let i = 1; i <= 5; i++) {
-                const score = partScores[`PART${i}`] || 0;
-                document.getElementById(`scorePart${i}`).textContent = score;
-
-                // 막대 너비 계산 (20점 만점 기준 퍼센트, 최대 100% 제한)
-                const percent = Math.min(Math.round((score / 20) * 100), 100);
-                setTimeout(() => {
-                    document.getElementById(`barPart${i}`).style.width = `${percent}%`;
-                }, 100);
-            }
-
-            // 5. 진단 상태에 따른 맞춤 솔루션 자동 생성
-            const solutionsContainer = document.getElementById('solutionsContainer');
-            let solutions = [
-                { icon: '🔕', title: '불필요한 푸시 알림 끄기', desc: '무의식적인 앱 접속을 줄이기 위해 꼭 필요한 연락 앱 외 알림을 비활성화해 보세요.' },
-                { icon: '🌙', title: '취침 1시간 전 스마트폰 거리두기', desc: '수면의 질을 높이고 피로를 줄이기 위해 잠들기 전에는 스마트폰을 침대 밖에 두세요.' },
-                { icon: '🌱', title: '오프라인 취미 및 대면 소통 늘리기', desc: '온라인 피드 대신 산책, 독서, 지인과의 직접 만남에 시간을 투자해 보세요.' }
-            ];
-
-            if (totalScore >= 70) {
-                solutions.unshift({
-                    icon: '🚨',
-                    title: '디지털 디톡스 타임 설정하기',
-                    desc: '하루 중 SNS를 전혀 사용하지 않는 시간(예: 식사 시간, 저녁 9시 이후)을 정해 의식적으로 휴식하세요.'
-                });
-            }
-
-            solutions.forEach(item => {
-                const card = document.createElement('div');
-                card.className = 'sol-card';
-                card.innerHTML = `
-                    <div class="sol-icon">${item.icon}</div>
-                    <div>
-                        <div style="font-size: 14px; font-weight: 700; color: #1e293b;">${item.title}</div>
-                        <div style="font-size: 13px; color: #64748b; margin-top: 2px;">${item.desc}</div>
-                    </div>
-                `;
-                solutionsContainer.appendChild(card);
-            });
-        });
     </script>
 </body>
 </html>
