@@ -28,22 +28,21 @@ def run_spark_pipeline():
         # 결측치 제거 (연령대 및 점수 미기재 데이터 제외)
         df_clean = df.dropna(subset=["age_group", "score"])
 
-        # 1. 연령대별 백분위 및 표본 수 연산
+        # 1 ~ 99 백분위 리스트 생성 ([0.01, 0.02, ..., 0.99])
+        percentiles_list = [round(i / 100.0, 2) for i in range(1, 100)]
+
+        # 1. 연령대별 1~99 백분위 배열 및 표본 수 연산
         df_age = df_clean.groupBy("age_group").agg(
             count("score").alias("count"),
-            percentile_approx("score", 0.25, 10000).alias("25th_percentile"),
-            percentile_approx("score", 0.50, 10000).alias("median"),
-            percentile_approx("score", 0.75, 10000).alias("75th_percentile")
+            percentile_approx("score", percentiles_list, 10000).alias("percentiles")
         )
 
-        # 2. 전체 데이터셋 기준 백분위 및 표본 수 연산 (age_group = "ALL")
+        # 2. 전체 데이터셋 기준 1~99 백분위 배열 및 표본 수 연산 (age_group = "ALL")
         df_all = df_clean.agg(
             count("score").alias("count"),
-            percentile_approx("score", 0.25, 10000).alias("25th_percentile"),
-            percentile_approx("score", 0.50, 10000).alias("median"),
-            percentile_approx("score", 0.75, 10000).alias("75th_percentile")
+            percentile_approx("score", percentiles_list, 10000).alias("percentiles")
         ).withColumn("age_group", lit("ALL")).select(
-            "age_group", "count", "25th_percentile", "median", "75th_percentile"
+            "age_group", "count", "percentiles"
         )
 
         # 연령대별 결과와 전체 결과 합치기
