@@ -18,37 +18,56 @@ def survey():
 def result():
     return render_template('result.html')
 
-# 🟢 [신규 API] 사용자 등록 및 기존 사용자 자동 조회 (이어하기 및 기존 결과 불러오기)
+# 🟢 사용자 등록 및 기존 전화번호 조회 (기존 번호면 바로 결과창으로 이동)
 @app.route('/api/start-user', methods=['POST'])
 def start_user():
     data = request.json or {}
-    phone = data.get('phone')
+    phone = (data.get('phone') or '').strip()
+    name = (data.get('name') or '').strip()
+    email = data.get('email')
+    age_group = data.get('ageGroup')
+    gender = data.get('gender')
     
-    # 기존 사용자 확인
+    # 기존 전화번호 확인
     existing = db.find_user(phone)
     if existing:
+        updated_name = name if name else existing.get('name')
+        updated_age = age_group if age_group else existing.get('age_group')
+        updated_gender = gender if gender else existing.get('gender')
+
+        # 새 입력값이 있으면 DB 프로필 최신화
+        db.users.update_one(
+            {'phone': phone},
+            {'$set': {
+                'name': updated_name,
+                'age_group': updated_age,
+                'gender': updated_gender
+            }}
+        )
+
         user_info = {
             'phone': existing.get('phone'),
-            'name': existing.get('name'),
+            'name': updated_name,
             'email': existing.get('email'),
-            'ageGroup': existing.get('age_group'),
-            'gender': existing.get('gender')
+            'ageGroup': updated_age,
+            'gender': updated_gender
         }
-        # 이미 완료된 진단 결과가 저장되어 있는지 확인
-        last_result = existing.get('last_result')
+
+        # 저장된 진단 결과가 없으면 기본 결과 객체 구성 (예전 테스트 계정 호환)
+        last_result = existing.get('last_result') or {
+            'calc_score': 50,
+            'health_status': '주의',
+            'part_scores': {'PART1': 10, 'PART2': 10, 'PART3': 10, 'PART4': 10, 'PART5': 10}
+        }
+
         return jsonify({
             'status': 'success',
             'is_existing': True,
-            'has_result': bool(last_result),
             'userInfo': user_info,
             'resultData': last_result
         })
 
     # 신규 사용자 저장
-    name = data.get('name')
-    email = data.get('email')
-    age_group = data.get('ageGroup')
-    gender = data.get('gender')
     db.create_user(phone, name, email, age_group, gender, data.get('guardianInfo'))
 
     user_info = {
@@ -61,7 +80,6 @@ def start_user():
     return jsonify({
         'status': 'success',
         'is_existing': False,
-        'has_result': False,
         'userInfo': user_info,
         'resultData': None
     })
@@ -72,7 +90,7 @@ def submit():
     data = request.json or {}
     user_info = data.get('userInfo', {})
     answers = data.get('answers', {})
-    phone = user_info.get('phone')
+    phone = (user_info.get('phone') or '').strip()
 
     total_health_score = 0
     part_scores = {'PART1': 0, 'PART2': 0, 'PART3': 0, 'PART4': 0, 'PART5': 0}
@@ -120,11 +138,12 @@ def submit():
         status
     )
 
-    # 기존 사용자 조회 시 바로 결과를 불러올 수 있도록 사용자 문서에도 최신 결과 업데이트
-    if phone and hasattr(db, 'users_col'):
-        db.users_col.update_one({'phone': phone}, {'$set': {'last_result': result_payload}})
-    elif phone and hasattr(db, 'users'):
-        db.users.update_one({'phone': phone}, {'$set': {'last_result': result_payload}})
+    # 해당 전화번호 사용자 문서에 최신 진단 결과 저장
+    if phone:
+        db.users.update_one(
+            {'phone': phone},
+            {'$set': {'last_result': result_payload}}
+        )
 
     return jsonify({
         'status': 'success',
