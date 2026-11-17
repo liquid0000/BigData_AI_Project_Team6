@@ -76,7 +76,7 @@
             margin-top: 4px;
         }
 
-        /* 종합 위험도 배너 */
+        /* 종합 건강도 배너 */
         .score-banner {
             background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
             color: #ffffff;
@@ -101,7 +101,7 @@
             font-weight: 700;
         }
 
-        /* 5개 파트별 위험도 막대 그래프 */
+        /* 5개 파트별 건강도 막대 그래프 */
         .part-analysis {
             margin-bottom: 32px;
         }
@@ -135,20 +135,71 @@
             transition: width 0.8s ease;
         }
 
-        /* 처방 솔루션 카드 */
+        /* 영역별 맞춤 솔루션 카드 */
         .sol-card {
             background: #f8fafc;
-            border: 1.5px solid #f1f5f9;
+            border: 1.5px solid #e2e8f0;
             padding: 18px 20px;
             border-radius: 16px;
-            margin-bottom: 12px;
+            margin-bottom: 14px;
             display: flex;
             gap: 16px;
-            align-items: center;
+            align-items: flex-start;
         }
+
+            .sol-card.needs-care {
+                background: #fffbeb;
+                border-color: #fde68a;
+            }
+
+            .sol-card.excellent {
+                background: #f0fdf4;
+                border-color: #bbf7d0;
+            }
 
         .sol-icon {
             font-size: 26px;
+            line-height: 1.2;
+            margin-top: 2px;
+        }
+
+        .sol-top-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 4px;
+        }
+
+        .sol-part-tag {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 6px;
+            background: #e2e8f0;
+            color: #334155;
+        }
+
+        .sol-level-badge {
+            font-size: 11px;
+            font-weight: 800;
+            padding: 2px 8px;
+            border-radius: 6px;
+        }
+
+        .level-high {
+            background: #dcfce7;
+            color: #15803d;
+        }
+
+        .level-mid {
+            background: #e0e7ff;
+            color: #4338ca;
+        }
+
+        .level-low {
+            background: #fef3c7;
+            color: #b45309;
         }
 
         .finish-btn {
@@ -196,22 +247,22 @@
             </div>
         </div>
 
-        <!-- 2. 종합 점수 및 위험군 상태 -->
+        <!-- 2. 종합 점수 및 건강도 상태 -->
         <div class="score-banner">
-            <div style="font-size: 13px; opacity: 0.9;">종합 습관 위험도 점수</div>
+            <div style="font-size: 13px; opacity: 0.9;">종합 SNS 건강도 점수 (100점 만점)</div>
             <div class="score-val"><span id="totalScoreDisplay">0</span>점</div>
             <div class="status-txt">진단 결과: <span id="statusDisplay">분석 중...</span></div>
         </div>
 
-        <!-- 3. 5개 영역별 위험도 분석 (막대 그래프) -->
+        <!-- 3. 5개 영역별 건강도 분석 (막대 그래프) -->
         <div class="part-analysis">
             <h3 style="font-size: 16px; font-weight: 800; color: #0f172a; margin-bottom: 16px;">
-                📊 영역별 위험도 분석
+                📊 영역별 건강도 분석 <span style="font-size: 12px; font-weight: 500; color: #64748b;">(점수가 높을수록 건강한 상태입니다)</span>
             </h3>
 
             <div class="part-item">
                 <div class="part-header">
-                    <span>1. 이용 습관 및 의존도</span>
+                    <span>1. 이용 습관 및 자율성</span>
                     <span><span id="scorePart1">0</span>점 / 20점</span>
                 </div>
                 <div class="bar-bg">
@@ -221,7 +272,7 @@
 
             <div class="part-item">
                 <div class="part-header">
-                    <span>2. 타인 비교 및 자존감</span>
+                    <span>2. 건강한 자아 및 자존감</span>
                     <span><span id="scorePart2">0</span>점 / 20점</span>
                 </div>
                 <div class="bar-bg">
@@ -231,7 +282,7 @@
 
             <div class="part-item">
                 <div class="part-header">
-                    <span>3. 정서 및 감정 상태</span>
+                    <span>3. 정서 및 감정 안정성</span>
                     <span><span id="scorePart3">0</span>점 / 20점</span>
                 </div>
                 <div class="bar-bg">
@@ -241,7 +292,7 @@
 
             <div class="part-item">
                 <div class="part-header">
-                    <span>4. 통제력 및 소외 불안(FOMO)</span>
+                    <span>4. 자기 통제력 및 여유</span>
                     <span><span id="scorePart4">0</span>점 / 20점</span>
                 </div>
                 <div class="bar-bg">
@@ -251,7 +302,7 @@
 
             <div class="part-item">
                 <div class="part-header">
-                    <span>5. 신체 영향 및 대인관계</span>
+                    <span>5. 신체 건강 및 대인관계</span>
                     <span><span id="scorePart5">0</span>점 / 20점</span>
                 </div>
                 <div class="bar-bg">
@@ -260,11 +311,14 @@
             </div>
         </div>
 
-        <!-- 4. 맞춤 처방 솔루션 -->
+        <!-- 4. 5개 영역별 정밀 진단 & 맞춤 솔루션 -->
         <div style="margin-top: 32px;">
-            <h3 style="font-size: 16px; font-weight: 800; color: #0f172a; margin-bottom: 14px;">
-                💡 <span id="solUserName">사용자</span>님을 위한 처방 솔루션
+            <h3 id="solutionHeading" style="font-size: 16px; font-weight: 800; color: #0f172a; margin-bottom: 6px;">
+                💡 <span id="solUserName">사용자</span>님의 영역별 정밀 처방 및 가이드
             </h3>
+            <p style="font-size: 13px; color: #64748b; margin: 0 0 16px 0;">
+                5개 영역별 점수를 분석해 강점은 유지하고 부족한 영역은 집중 개선할 수 있도록 구성했습니다.
+            </p>
             <div id="solutionsContainer"></div>
         </div>
 
@@ -302,7 +356,7 @@
 
                     // 2. 종합 점수 및 상태 매핑
                     const totalScore = resultData.calc_score ?? resultData.total_score ?? 0;
-                    const healthStatus = resultData.health_status || resultData.status || '정상';
+                    const healthStatus = resultData.health_status || resultData.status || '양호';
                     setText('totalScoreDisplay', totalScore);
                     setText('statusDisplay', healthStatus);
 
@@ -325,44 +379,152 @@
                         const percent = Math.min(Math.round((score / 20) * 100), 100);
                         const barEl = document.getElementById(`barPart${i}`);
                         if (barEl) {
+                            // 점수에 따른 막대 색상 차별화
+                            if (score >= 16) barEl.style.backgroundColor = '#16a34a';
+                            else if (score >= 12) barEl.style.backgroundColor = '#4f46e5';
+                            else barEl.style.backgroundColor = '#f59e0b';
+
                             setTimeout(() => {
                                 barEl.style.width = `${percent}%`;
                             }, 100);
                         }
                     }
 
-                    // 5. 맞춤 솔루션 생성
+                    // 5. 5개 영역별 점수에 따른 세밀한 맞춤 처방/가이드 생성
+                    const partPrescriptions = [
+                        {
+                            key: 'PART1',
+                            name: '1영역 · 이용 습관 및 자율성',
+                            icon: '⏱️',
+                            high: {
+                                title: '주체적인 앱 사용 시간 관리 (우수)',
+                                desc: '필요할 때만 목적을 가지고 SNS를 열며, 스스로 정한 사용 시간을 훌륭하게 통제하고 계십니다.'
+                            },
+                            mid: {
+                                title: '무의식적 앱 실행 줄이기',
+                                desc: '심심할 때 습관적으로 앱을 켜는 빈도를 줄이기 위해 SNS 아이콘을 스마트폰 첫 화면이 아닌 폴더 안쪽으로 옮겨 보세요.'
+                            },
+                            low: {
+                                title: '일일 스크린 타임 제한 및 사용 타이머 설정 처방',
+                                desc: '사용 시간이 의도보다 길어지는 경향이 있습니다. 스마트폰 설정에서 앱별 하루 사용 한도(예: 1시간)를 잠금 설정해 보세요.'
+                            }
+                        },
+                        {
+                            key: 'PART2',
+                            name: '2영역 · 건강한 자아 및 자존감',
+                            icon: '🪞',
+                            high: {
+                                title: '단단한 자존감과 건강한 시선 (우수)',
+                                desc: '타인의 화려한 피드에 흔들리지 않고 나만의 속도와 가치를 건강하게 지켜내고 계십니다.'
+                            },
+                            mid: {
+                                title: '나에게 영감을 주는 피드 중심으로 정리하기',
+                                desc: '막연한 부러움이나 위축감을 주는 계정은 가볍게 숨김(뮤트) 처리하고, 취미나 배움에 도움이 되는 계정 비중을 높여 보세요.'
+                            },
+                            low: {
+                                title: '타인 비교 차단 및 현실 성취 기록 처방',
+                                desc: 'SNS 속 편집된 일상과 나를 비교하며 자존감이 소모되고 있습니다. 일주일간 피드 탐색을 멈추고 오늘 내가 해낸 작은 성취 3가지를 메모해 보세요.'
+                            }
+                        },
+                        {
+                            key: 'PART3',
+                            name: '3영역 · 정서 및 감정 안정성',
+                            icon: '🌿',
+                            high: {
+                                title: '안정적인 정서 유지와 긍정적 소통 (우수)',
+                                desc: '온라인상의 자극이나 부정적 콘텐츠에 감정적으로 휩쓸리지 않고 평온한 마음 상태를 유지하고 계십니다.'
+                            },
+                            mid: {
+                                title: '감정 피로도를 높이는 콘텐츠 거리두기',
+                                desc: '논쟁적이거나 자극적인 게시물을 본 날에는 앱을 잠시 닫고 좋아하는 음악이나 가벼운 산책으로 기분을 환기해 보세요.'
+                            },
+                            low: {
+                                title: '디지털 감정 디톡스 및 알림 차단 처방',
+                                desc: 'SNS 이용 후 공허함이나 우울감이 커지는 신호가 보입니다. 부정적 감정을 유발하는 키워드·계정을 차단하고 오프라인 휴식 시간을 확보하세요.'
+                            }
+                        },
+                        {
+                            key: 'PART4',
+                            name: '4영역 · 자기 통제력 및 여유',
+                            icon: '🔕',
+                            high: {
+                                title: '소외 불안(FOMO) 없는 여유로운 태도 (우수)',
+                                desc: '실시간 트렌드나 타인의 반응을 즉각 확인하지 않아도 불안해하지 않는 건강한 여유를 갖추고 계십니다.'
+                            },
+                            mid: {
+                                title: '정해진 시간에만 몰아서 확인하기',
+                                desc: '수시로 피드를 새로고침하는 대신 점심시간과 퇴근 후 등 하루 2~3번 정해진 시간에만 소식을 확인하는 루틴을 만들어 보세요.'
+                            },
+                            low: {
+                                title: '푸시 알림 전면 해제 및 확인 주기 늘리기 처방',
+                                desc: '새로운 소식을 놓칠까 봐 자주 확인하는 경향이 있습니다. 메신저를 제외한 모든 SNS 푸시 알림을 끄고, 스마트폰을 손이 닿지 않는 곳에 두어 보세요.'
+                            }
+                        },
+                        {
+                            key: 'PART5',
+                            name: '5영역 · 신체 건강 및 대인관계',
+                            icon: '🌙',
+                            high: {
+                                title: '균형 잡힌 수면·신체 리듬과 오프라인 관계 (우수)',
+                                desc: '스마트폰 사용이 수면이나 학업·업무, 실제 지인들과의 대면 관계를 방해하지 않도록 아주 잘 관리하고 계십니다.'
+                            },
+                            mid: {
+                                title: '잠들기 전 30분 스크린 오프 & 눈 휴식',
+                                desc: '장시간 화면 시청으로 인한 눈의 피로와 목·어깨 긴장을 풀기 위해 50분 사용 후 10분간 먼 곳을 바라보며 스트레칭을 해주세요.'
+                            },
+                            low: {
+                                title: '취침 1시간 전 침대 밖 보관 & 대면 대화 늘리기 처방',
+                                desc: '늦은 밤 SNS 사용으로 수면의 질이 떨어지거나 현실 소통이 줄어들 수 있습니다. 충전기를 침실 밖에 두고, 이번 주 지인과 직접 만나 대화하는 시간을 잡아보세요.'
+                            }
+                        }
+                    ];
+
                     const solutionsContainer = document.getElementById('solutionsContainer');
                     if (solutionsContainer) {
-                        let solutions = [
-                            { icon: '🔕', title: '불필요한 푸시 알림 끄기', desc: '무의식적인 앱 접속을 줄이기 위해 꼭 필요한 연락 앱 외 알림을 비활성화해 보세요.' },
-                            { icon: '🌙', title: '취침 1시간 전 스마트폰 거리두기', desc: '수면의 질을 높이고 피로를 줄이기 위해 잠들기 전에는 스마트폰을 침대 밖에 두세요.' },
-                            { icon: '🌱', title: '오프라인 취미 및 대면 소통 늘리기', desc: '온라인 피드 대신 산책, 독서, 지인과의 직접 만남에 시간을 투자해 보세요.' }
-                        ];
+                        // 점수가 낮은(개선이 시급한) 영역이 위쪽에 먼저 보이도록 정렬
+                        const sortedParts = [...partPrescriptions].sort((a, b) => {
+                            const scoreA = partScores[a.key] || 0;
+                            const scoreB = partScores[b.key] || 0;
+                            return scoreA - scoreB;
+                        });
 
-                        if (totalScore >= 70) {
-                            solutions.unshift({
-                                icon: '🚨',
-                                title: '디지털 디톡스 타임 설정하기',
-                                desc: '하루 중 SNS를 전혀 사용하지 않는 시간(예: 식사 시간, 저녁 9시 이후)을 정해 의식적으로 휴식하세요.'
-                            });
-                        }
+                        sortedParts.forEach(part => {
+                            const score = partScores[part.key] || 0;
+                            let content = part.mid;
+                            let levelText = '양호 · 유지 팁';
+                            let badgeClass = 'level-mid';
+                            let cardClass = 'sol-card';
 
-                        solutions.forEach(item => {
+                            if (score >= 16) {
+                                content = part.high;
+                                levelText = '우수 · 강점 유지';
+                                badgeClass = 'level-high';
+                                cardClass = 'sol-card excellent';
+                            } else if (score <= 11) {
+                                content = part.low;
+                                levelText = '집중 관리 · 개선 처방';
+                                badgeClass = 'level-low';
+                                cardClass = 'sol-card needs-care';
+                            }
+
                             const card = document.createElement('div');
-                            card.className = 'sol-card';
+                            card.className = cardClass;
                             card.innerHTML = `
-                                <div class="sol-icon">${item.icon}</div>
-                                <div>
-                                    <div style="font-size: 14px; font-weight: 700; color: #1e293b;">${item.title}</div>
-                                    <div style="font-size: 13px; color: #64748b; margin-top: 2px;">${item.desc}</div>
+                                <div class="sol-icon">${part.icon}</div>
+                                <div style="flex: 1;">
+                                    <div class="sol-top-row">
+                                        <span class="sol-part-tag">${part.name} (${score}/20점)</span>
+                                        <span class="sol-level-badge ${badgeClass}">${levelText}</span>
+                                    </div>
+                                    <div style="font-size: 14px; font-weight: 800; color: #1e293b; margin-top: 2px;">${content.title}</div>
+                                    <div style="font-size: 13px; color: #475569; margin-top: 4px; line-height: 1.5;">${content.desc}</div>
                                 </div>
                             `;
                             solutionsContainer.appendChild(card);
                         });
                     }
 
-                    // 6. 진단 끝내기 버튼 동작 (임시 세션 데이터 정리 후 메인으로 이동)
+                    // 6. 진단 끝내기 버튼 동작
                     const finishBtn = document.getElementById('finishBtn');
                     if (finishBtn) {
                         finishBtn.addEventListener('click', function() {
