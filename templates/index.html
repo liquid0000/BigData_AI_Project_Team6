@@ -29,7 +29,7 @@
             <!-- 연락처 -->
             <div style="margin-bottom: 18px;">
                 <label for="userPhone" style="display: block; font-size: 13px; font-weight: 700; color: #334155; margin-bottom: 6px;">연락처</label>
-                <input type="tel" id="userPhone" name="userPhone" placeholder="010-1234-5678" required style="width: 100%; padding: 12px 14px; font-size: 14px; border: 1.5px solid #cbd5e1; border-radius: 10px; outline: none; box-sizing: border-box;">
+                <input type="tel" id="userPhone" name="userPhone" placeholder="010-1234-5678" maxlength="13" required style="width: 100%; padding: 12px 14px; font-size: 14px; border: 1.5px solid #cbd5e1; border-radius: 10px; outline: none; box-sizing: border-box;">
             </div>
 
             <!-- 연령대 선택 -->
@@ -66,7 +66,7 @@
                     <p style="margin: 0 0 4px 0;"><strong>[개인정보 수집 안내]</strong></p>
                     <p style="margin: 0 0 4px 0;">1. 수집 항목: 이름, 연락처, 연령대, 성별, (14세 미만의 경우) 법정대리인 정보</p>
                     <p style="margin: 0 0 4px 0;">2. 수집 목적: SNS 사용 습관 진단 리포트 제공 및 본인 확인</p>
-                    <p style="margin: 0;">3. 보유 기간: 진단 완료 및 개인정보 입력 후 60일 이후까지</p>
+                    <p style="margin: 0;">3. 보유 기간: 진단 완료 및 서비스 종료 시까지</p>
                 </div>
                 <label style="display: flex; align-items: center; font-size: 13px; font-weight: 600; color: #334155; cursor: pointer;">
                     <input type="checkbox" id="privacyAgree" required style="margin-right: 8px;"> [필수] 개인정보 수집 및 이용에 동의합니다.
@@ -85,7 +85,7 @@
 
                 <div style="margin-bottom: 12px;">
                     <label for="guardianPhone" style="display: block; font-size: 12px; font-weight: 700; color: #1e3a8a; margin-bottom: 4px;">법정대리인 연락처 *</label>
-                    <input type="tel" id="guardianPhone" name="guardianPhone" placeholder="010-0000-0000" style="width: 100%; padding: 10px 12px; font-size: 13px; border: 1px solid #93c5fd; border-radius: 8px; outline: none; box-sizing: border-box;">
+                    <input type="tel" id="guardianPhone" name="guardianPhone" placeholder="010-0000-0000" maxlength="13" style="width: 100%; padding: 10px 12px; font-size: 13px; border: 1px solid #93c5fd; border-radius: 8px; outline: none; box-sizing: border-box;">
                 </div>
 
                 <div style="margin-bottom: 12px;">
@@ -110,12 +110,32 @@
     </div>
 
     <script>
+                // 전화번호 하이픈 자동 포맷 함수 (예: 01012345678 -> 010-1234-5678)
+                function formatPhoneNumber(value) {
+                    const digits = String(value || '').replace(/\D/g, '').slice(0, 11);
+                    if (digits.length < 4) return digits;
+                    if (digits.length < 8) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+                    return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
+                }
+
                 document.addEventListener('DOMContentLoaded', function() {
+                    const userPhoneInput = document.getElementById('userPhone');
+                    const guardianPhoneInput = document.getElementById('guardianPhone');
+
+                    // 입력할 때마다 자동으로 하이픈(-) 적용
+                    [userPhoneInput, guardianPhoneInput].forEach(input => {
+                        if (input) {
+                            input.addEventListener('input', function(e) {
+                                e.target.value = formatPhoneNumber(e.target.value);
+                            });
+                        }
+                    });
+
                     const ageSelect = document.getElementById('ageGroup');
                     const guardianSection = document.getElementById('guardianSection');
                     const guardianInputs = [
                         document.getElementById('guardianName'),
-                        document.getElementById('guardianPhone'),
+                        guardianPhoneInput,
                         document.getElementById('guardianRelation'),
                         document.getElementById('guardianAgree')
                     ];
@@ -149,14 +169,20 @@
                             e.preventDefault();
 
                             const formData = new FormData(startForm);
-                            const name = String(formData.get('userName') || '');
-                            const phone = String(formData.get('userPhone') || '');
+                            const name = String(formData.get('userName') || '').trim();
+                            const phone = formatPhoneNumber(formData.get('userPhone'));
                             const ageGroup = String(formData.get('ageGroup') || '');
                             const gender = String(formData.get('userGender') || '');
 
+                            if (phone.replace(/\D/g, '').length < 10) {
+                                alert('올바른 연락처(10~11자리 숫자)를 입력해 주세요.');
+                                userPhoneInput?.focus();
+                                return;
+                            }
+
                             const guardianInfo = ageGroup === '만 14세 미만' ? {
-                                name: String(formData.get('guardianName') || ''),
-                                phone: String(formData.get('guardianPhone') || ''),
+                                name: String(formData.get('guardianName') || '').trim(),
+                                phone: formatPhoneNumber(formData.get('guardianPhone')),
                                 relation: String(formData.get('guardianRelation') || '')
                             } : null;
 

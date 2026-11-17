@@ -1,3 +1,4 @@
+import re
 from flask import Flask, render_template, request, jsonify
 import db
 
@@ -5,6 +6,17 @@ app = Flask(__name__)
 
 # MongoDB 인덱스 준비 (연락처 중복 방지, 개인정보 60일 자동 삭제)
 db.init_db()
+
+
+def normalize_phone(phone_str):
+    """숫자만 추출해 010-1234-5678 형식으로 통일"""
+    digits = re.sub(r'\D', '', str(phone_str or ''))
+    if len(digits) == 11:
+        return f"{digits[:3]}-{digits[3:7]}-{digits[7:]}"
+    elif len(digits) == 10:
+        return f"{digits[:3]}-{digits[3:6]}-{digits[6:]}"
+    return (phone_str or '').strip()
+
 
 def estimate_top_percentile(score, stats_doc):
     """Spark가 계산한 25th, median(50th), 75th 사분위수를 이용해 상위 % 추정"""
@@ -34,6 +46,7 @@ def estimate_top_percentile(score, stats_doc):
 
     return max(1, min(99, top_pct))
 
+
 def calculate_percentiles(calc_score, age_group):
     """MongoDB spark_results 컬렉션에서 Spark 집계 결과를 읽어 전체/연령대 백분위 반환"""
     spark_col = db.db["spark_results"]
@@ -56,27 +69,34 @@ def calculate_percentiles(calc_score, age_group):
 
     return final_overall, final_age, total_count
 
+
 @app.route('/')
 def index():
     return render_template('index.html')
+
 
 @app.route('/survey')
 def survey():
     return render_template('survey.html')
 
+
 @app.route('/result')
 def result():
     return render_template('result.html')
 
+
 @app.route('/api/start-user', methods=['POST'])
 def start_user():
     data = request.json or {}
-    phone = (data.get('phone') or '').strip()
+    phone = normalize_phone(data.get('phone'))
     name = (data.get('name') or '').strip()
     email = data.get('email')
-    age_group = data.get('ageGroup')
-    gender = data.get('gender')
-    
+    age_group = (data.get('ageGroup') or '').strip()
+    gender = (data.get('gender') or '').strip()
+
+    if not phone or not name or not age_group or not gender:
+        return jsonify({'status': 'error', 'message': '필수 사용자 정보가 누락되었습니다.'}), 400
+
     existing = db.find_user(phone)
     if existing:
         updated_name = name if name else existing.get('name')
@@ -119,7 +139,11 @@ def start_user():
             'resultData': last_result
         })
 
-    db.create_user(phone, name, email, age_group, gender, data.get('guardianInfo'))
+    guardian_info = data.get('guardianInfo')
+    if isinstance(guardian_info, dict) and guardian_info.get('phone'):
+        guardian_info['phone'] = normalize_phone(guardian_info['phone'])
+
+    db.create_user(phone, name, email, age_group, gender, guardian_info)
 
     user_info = {
         'phone': phone,
@@ -135,41 +159,69 @@ def start_user():
         'resultData': None
     })
 
+
 @app.route('/api/submit', methods=['POST'])
 def submit():
     data = request.json or {}
-    user_info = data.get('userInfo', {})
-    answers = data.get('answers', {})
-    phone = (user_info.get('phone') or '').strip()
-    age_group = user_info.get('ageGroup')
+    user_info = data.get('userInfo') or {}
+    answers = data.get('answers') or {}
+    phone = normalize_phone(user_info.get('phone'))
 
+    # 1. 사전 개인정보 동의 및 사용자 등록 여부 검증 (직접 API 호출 차단)
+    if not phone:
+        return jsonify({'status': 'error', 'message': '사용자 정보가 필요합니다.'}), 403
+
+    registered_user = db.find_user(phone)
+    if not registered_user or not registered_user.get('privacy_agreed'):
+        return jsonify({'status': 'error', 'message': '개인정보 동의 및 정보 입력 후 제출할 수 있습니다.'}), 403
+
+    # DB에 등록된 신뢰할 수 있는 연령대/성별 사용
+    age_group = registered_user.get('age_group') or user_info.get('ageGroup')
+    gender = registered_user.get('gender') or user_info.get('gender')
+
+    # 2. 25문항 유효성 검증 (1~5 정수 필수) 및 점수 계산
     total_health_score = 0
     part_scores = {'PART1': 0, 'PART2': 0, 'PART3': 0, 'PART4': 0, 'PART5': 0}
     positive_questions = {3, 5, 8, 10, 13, 15, 18, 20, 21, 22, 24, 25}
 
     for i in range(1, 26):
         q_key = f'q{i}'
+        if q_key not in answers:
+            return jsonify({'status': 'error', 'message': f'{q_key} 문항 응답이 누락되었습니다.'}), 400
         try:
-            raw_val = int(answers.get(q_key, 3))
+            raw_val = int(answers[q_key])
         except (ValueError, TypeError):
-            raw_val = 3
-        
+            return jsonify({'status': 'error', 'message': f'{q_key} 문항 응답 형식이 올바르지 않습니다.'}), 400
+
+        if raw_val < 1 or raw_val > 5:
+            return jsonify({'status': 'error', 'message': f'{q_key} 문항 응답 범위를 벗어났습니다.'}), 400
+
         health_val = (raw_val - 1) if i in positive_questions else (5 - raw_val)
         total_health_score += health_val
 
-        if 1 <= i <= 5: part_scores['PART1'] += health_val
-        elif 6 <= i <= 10: part_scores['PART2'] += health_val
-        elif 11 <= i <= 15: part_scores['PART3'] += health_val
-        elif 16 <= i <= 20: part_scores['PART4'] += health_val
-        elif 21 <= i <= 25: part_scores['PART5'] += health_val
+        if 1 <= i <= 5:
+            part_scores['PART1'] += health_val
+        elif 6 <= i <= 10:
+            part_scores['PART2'] += health_val
+        elif 11 <= i <= 15:
+            part_scores['PART3'] += health_val
+        elif 16 <= i <= 20:
+            part_scores['PART4'] += health_val
+        elif 21 <= i <= 25:
+            part_scores['PART5'] += health_val
 
     calc_score = total_health_score
 
-    if calc_score >= 80: status = "매우 건강"
-    elif calc_score >= 60: status = "양호"
-    elif calc_score >= 40: status = "주의"
-    elif calc_score >= 20: status = "위험"
-    else: status = "고위험"
+    if calc_score >= 80:
+        status = "매우 건강"
+    elif calc_score >= 60:
+        status = "양호"
+    elif calc_score >= 40:
+        status = "주의"
+    elif calc_score >= 20:
+        status = "위험"
+    else:
+        status = "고위험"
 
     p_all, p_age, ds_count = calculate_percentiles(calc_score, age_group)
 
@@ -184,23 +236,23 @@ def submit():
 
     db.save_response(
         age_group,
-        user_info.get('gender'),
+        gender,
         answers,
         part_scores,
         calc_score,
         status
     )
 
-    if phone:
-        db.users.update_one(
-            {'phone': phone},
-            {'$set': {'last_result': result_payload}}
-        )
+    db.users.update_one(
+        {'phone': phone},
+        {'$set': {'last_result': result_payload}}
+    )
 
     return jsonify({
         'status': 'success',
         **result_payload
     })
+
 
 if __name__ == '__main__':
     app.run(debug=True)
