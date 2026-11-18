@@ -120,11 +120,14 @@ def start_user():
             'gender': updated_gender
         }
 
-        last_result = existing.get('last_result') or {
-            'calc_score': 50,
-            'health_status': '주의',
-            'part_scores': {'PART1': 10, 'PART2': 10, 'PART3': 10, 'PART4': 10, 'PART5': 10}
-        }
+        last_result = existing.get('last_result')
+        if not last_result:
+            return jsonify({
+                'status': 'success',
+                'is_existing': False,
+                'userInfo': user_info,
+                'resultData': None
+            })
 
         p_all, p_age, ds_count = calculate_percentiles(last_result.get('calc_score', 50), updated_age)
         last_result['percentile'] = p_all
