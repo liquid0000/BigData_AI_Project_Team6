@@ -19,32 +19,14 @@ def normalize_phone(phone_str):
 
 
 def estimate_top_percentile(score, stats_doc):
-    """Spark가 계산한 25th, median(50th), 75th 사분위수를 이용해 상위 % 추정"""
+    """Spark가 계산한 1~99 백분위 배열로 상위 % 계산"""
     if not stats_doc:
         return None
-
-    p25 = stats_doc.get("25th_percentile")
-    p50 = stats_doc.get("median")
-    p75 = stats_doc.get("75th_percentile")
-
-    if p25 is None or p50 is None or p75 is None:
+    arr = stats_doc.get("percentiles")
+    if not arr:
         return None
-
-    # 점수가 높을수록 상위 % 숫자가 작아짐 (p75 이상 = 상위 25% 이내)
-    if score >= p75:
-        ratio = (100 - score) / max(1, (100 - p75))
-        top_pct = round(1 + ratio * 24)
-    elif score >= p50:
-        ratio = (p75 - score) / max(1, (p75 - p50))
-        top_pct = round(25 + ratio * 25)
-    elif score >= p25:
-        ratio = (p50 - score) / max(1, (p50 - p25))
-        top_pct = round(50 + ratio * 25)
-    else:
-        ratio = (p25 - score) / max(1, p25)
-        top_pct = round(75 + ratio * 24)
-
-    return max(1, min(99, top_pct))
+    below = sum(1 for v in arr if v <= score)
+    return max(1, min(99, 100 - below))
 
 
 def calculate_percentiles(calc_score, age_group):
