@@ -4,48 +4,34 @@ import pandas as pd
 import db
 from preprocess_spark import run_spark_pipeline
 
-# ==============================================================================
-# 1. data/ 폴더 내 파일 경로 및 컬럼명 설정 (실제 파일명·컬럼명에 맞게 수정하세요)
-# ==============================================================================
-KAGGLE_FILE = "data/kaggle_sns.csv"          # 캐글 CSV 파일 경로 (없으면 None)
-NAVER_FILE = "data/naver_form_sns.xlsx"    # 네이버폼 CSV 또는 XLSX 파일 경로 (없으면 None)
-
-# 캐글 파일 설정
-KAGGLE_CONFIG = {
-    "age_col": "Age",                        # 나이 또는 연령대 컬럼명
-    "score_col": "Addicted_Score",           # 점수 컬럼명
-    "max_raw_score": 10.0,                   # 원본 점수 만점 기준 (예: 10점 만점이면 10.0)
-    "min_raw_score": 1.0,                    # 원본 점수 최솟값 (0점부터 시작이면 0.0)
-    "higher_is_worse": True                  # True: 높을수록 중독/위험(점수 반전) / False: 높을수록 건강
-}
-
-# 네이버폼 파일 설정 (25문항 개별 응답 컬럼이 있는 경우)
-NAVER_CONFIG = {
-    "age_col": "연령대를 선택해 주세요",      # 네이버폼 연령대 질문 컬럼명
-    "gender_col": "성별을 선택해 주세요",     # 네이버폼 성별 질문 컬럼명 (없으면 None)
-    "question_cols": [f"Q{i}" for i in range(1, 26)],
-    "positive_questions": {3, 5, 8, 10, 13, 15, 18, 20, 21, 22, 24, 25}
-}
+# data/ 폴더 경로에 맞게 수정하세요
+NAVER_FILE = "data/naver_form_data.csv"
+KAGGLE_FILE = "data/Social_media_impact_on_life.csv"
 
 
-# ==============================================================================
-# 2. 공통 변환 함수 (연령대 통일 & 점수 환산)
-# ==============================================================================
+def read_any_table(filepath):
+    """확장자와 무관하게 실제 파일 시그니처(xlsx/csv)를 감지하여 로드"""
+    with open(filepath, "rb") as f:
+        sig = f.read(4)
+    if sig == b"PK\x03\x04":
+        return pd.read_excel(filepath)
+    for enc in ("utf-8-sig", "cp949", "euc-kr"):
+        try:
+            return pd.read_csv(filepath, encoding=enc)
+        except UnicodeDecodeError:
+            continue
+    return pd.read_csv(filepath, encoding="latin1")
+
+
 def normalize_age_group(raw_age):
-    """숫자 나이 또는 다양한 연령대 텍스트를 웹 서비스 6개 구간으로 통일"""
+    """네이버폼/캐글 연령을 웹 서비스 6개 연령대 문자열로 통일"""
     if pd.isna(raw_age):
         return None
     s = str(raw_age).strip()
 
-    valid_groups = {
-        "만 14세 미만",
-        "만 14세 이상 ~ 만 19세 미만",
-        "20대",
-        "30대",
-        "40대",
-        "50대 이상"
-    }
-    if s in valid_groups:
+    if "10대" in s:
+        return "만 14세 이상 ~ 만 19세 미만"
+    if s in {"20대", "30대", "40대", "50대 이상", "만 14세 미만", "만 14세 이상 ~ 만 19세 미만"}:
         return s
 
     nums = re.findall(r"\d+", s)
@@ -53,8 +39,6 @@ def normalize_age_group(raw_age):
         return None
     age = int(nums[0])
 
-    if "10대" in s:
-        return "만 14세 이상 ~ 만 19세 미만"
     if age < 14:
         return "만 14세 미만"
     elif age < 20:
@@ -69,103 +53,67 @@ def normalize_age_group(raw_age):
         return "50대 이상"
 
 
-def extract_likert_value(val):
-    """'1', '1점', '1. 전혀 아니다' 등에서 1~5 정수 추출"""
-    if pd.isna(val):
-        return None
-    m = re.search(r"[1-5]", str(val))
-    return int(m.group()) if m else None
-
-
-def read_table(filepath):
-    if filepath.endswith(".csv"):
-        try:
-            return pd.read_csv(filepath, encoding="utf-8-sig")
-        except UnicodeDecodeError:
-            return pd.read_csv(filepath, encoding="cp949")
-    return pd.read_excel(filepath)
-
-
 # ==============================================================================
-# 3. 캐글 데이터 변환기
+# 1. 네이버폼 데이터(79건) -> 웹 결과창 5개 영역(각 20점, 총 100점) 환산
 # ==============================================================================
-def load_kaggle_docs(filepath, cfg):
+def load_naver_docs(filepath):
     if not filepath or not os.path.exists(filepath):
-        print(f"[건너뜀] 캐글 파일을 찾을 수 없습니다: {filepath}")
+        print(f"[건너뜀] 네이버폼 파일 없음: {filepath}")
         return []
 
-    df = read_table(filepath)
-    docs = []
-    span = cfg["max_raw_score"] - cfg["min_raw_score"]
-
-    for _, row in df.iterrows():
-        age_group = normalize_age_group(row.get(cfg["age_col"]))
-        raw_score = row.get(cfg["score_col"])
-        if not age_group or pd.isna(raw_score):
-            continue
-
-        try:
-            val = float(raw_score)
-        except (ValueError, TypeError):
-            continue
-
-        ratio = max(0.0, min(1.0, (val - cfg["min_raw_score"]) / span))
-        health_score = round((1.0 - ratio) * 100) if cfg["higher_is_worse"] else round(ratio * 100)
-
-        docs.append({
-            "source": "kaggle",
-            "age_group": age_group,
-            "score": int(health_score)
-        })
-
-    print(f"[캐글] 변환 완료: {len(docs)}건")
-    return docs
-
-
-# ==============================================================================
-# 4. 네이버폼 데이터 변환기 (웹 설문과 동일한 25문항 역채점 적용)
-# ==============================================================================
-def load_naver_docs(filepath, cfg):
-    if not filepath or not os.path.exists(filepath):
-        print(f"[건너뜀] 네이버폼 파일을 찾을 수 없습니다: {filepath}")
-        return []
-
-    df = read_table(filepath)
+    df = read_any_table(filepath)
     docs = []
 
-    q_cols = cfg["question_cols"]
-    if not all(col in df.columns for col in q_cols):
-        auto_cols = [c for c in df.columns if re.match(r"^(Q|q)?\d+[\.\)\s]", str(c).strip())]
-        if len(auto_cols) == 25:
-            q_cols = auto_cols
-        else:
-            print("[오류] 네이버폼 25개 문항 컬럼을 매칭하지 못했습니다. NAVER_CONFIG['question_cols']를 확인해 주세요.")
-            return []
+    col_age = "귀하의 연령대는 어떻게 되시나요?(*)"
+    col_time = "하루 평균 소셜미디어 이용 시간은 어느 정도인가요?(*)"
+    col_comp = "타인의 SNS 게시물을 보고 나 자신과 비교하며 상대적 박탈감이나 우울함을 느낀 적이 있다.(*)"
+    col_heal = "SNS를 통해 필요한 정보를 얻거나 정서적 위안 및 힐링을 얻는다.(*)"
+    col_fomo = "특별한 목적 없이 습관적으로 SNS를 확인하지 않으면 불안감(FOMO)을 느낀다.(*)"
+    col_rel = "SNS에서의 소통이 현실 세계의 인간관계 형성 및 유지에 긍정적인 도움을 준다.(*)"
+
+    time_score_map = {
+        "1시간 미만": 20,
+        "1시간 이상 ~ 2시간 미만": 15,
+        "2시간 이상 ~ 4시간 미만": 10,
+        "4시간 이상": 5,
+    }
 
     for _, row in df.iterrows():
-        age_group = normalize_age_group(row.get(cfg["age_col"]))
+        age_group = normalize_age_group(row.get(col_age))
         if not age_group:
             continue
 
-        total_health_score = 0
-        valid_row = True
+        try:
+            # PART1: 이용 습관 및 자율성 (이용시간 기반, 20점)
+            t_str = str(row.get(col_time, "")).strip()
+            p1 = time_score_map.get(t_str, 10)
 
-        for idx, col in enumerate(q_cols, start=1):
-            raw_val = extract_likert_value(row.get(col))
-            if raw_val is None:
-                valid_row = False
-                break
-            health_val = (raw_val - 1) if idx in cfg["positive_questions"] else (5 - raw_val)
-            total_health_score += health_val
+            # PART2: 건강한 자아 및 자존감 (상대적 박탈감 역채점: 1->20, 5->0)
+            v_comp = int(float(row[col_comp]))
+            p2 = (5 - v_comp) * 5
 
-        if not valid_row:
+            # PART3: 정서 및 감정 안정성 (정서적 위안/힐링 정채점: 1->0, 5->20)
+            v_heal = int(float(row[col_heal]))
+            p3 = (v_heal - 1) * 5
+
+            # PART4: 자기 통제력 및 여유 (FOMO 불안감 역채점: 1->20, 5->0)
+            v_fomo = int(float(row[col_fomo]))
+            p4 = (5 - v_fomo) * 5
+
+            # PART5: 신체 건강 및 대인관계 (현실 인간관계 도움 정채점: 1->0, 5->20)
+            v_rel = int(float(row[col_rel]))
+            p5 = (v_rel - 1) * 5
+        except (ValueError, TypeError, KeyError):
             continue
+
+        part_scores = {"PART1": p1, "PART2": p2, "PART3": p3, "PART4": p4, "PART5": p5}
+        total_score = p1 + p2 + p3 + p4 + p5
 
         docs.append({
             "source": "naver_form",
             "age_group": age_group,
-            "gender": str(row.get(cfg["gender_col"])).strip() if cfg.get("gender_col") in df.columns else None,
-            "score": int(total_health_score)
+            "part_scores": part_scores,
+            "score": int(total_score)
         })
 
     print(f"[네이버폼] 변환 완료: {len(docs)}건")
@@ -173,29 +121,96 @@ def load_naver_docs(filepath, cfg):
 
 
 # ==============================================================================
-# 5. MongoDB Atlas 통합 적재 및 Spark 통계 즉시 갱신
+# 2. 캐글 데이터(4,500건) -> 웹 결과창 5개 영역(각 20점, 총 100점) 환산
 # ==============================================================================
+def load_kaggle_docs(filepath):
+    if not filepath or not os.path.exists(filepath):
+        print(f"[건너뜀] 캐글 파일 없음: {filepath}")
+        return []
+
+    df = read_any_table(filepath)
+    docs = []
+
+    comp_map = {
+        "Never": 20,
+        "Rarely": 15,
+        "Sometimes": 10,
+        "Frequently": 5,
+        "Always": 0
+    }
+
+    for _, row in df.iterrows():
+        age_group = normalize_age_group(row.get("Age"))
+        if not age_group:
+            continue
+
+        try:
+            # PART1: 이용 습관 및 자율성 (일일 이용시간 1~12시간 기준 역환산, 20점)
+            daily_hrs = float(row["Daily_Usage_Hours"])
+            p1 = round(max(0.0, min(20.0, (12.0 - daily_hrs) / 11.0 * 20.0)))
+
+            # PART2: 건강한 자아 및 자존감 (타인 비교 빈도, 20점)
+            comp_str = str(row.get("Social_Comparison_Frequency", "")).strip()
+            p2 = comp_map.get(comp_str, 10)
+
+            # PART3: 정서 및 감정 안정성 (스트레스 역환산 + 정신건강지수, 20점)
+            stress = float(row["Perceived_Stress_Score"]) if pd.notna(row.get("Perceived_Stress_Score")) else 15.0
+            mhi = float(row["Mental_Health_Index"]) if pd.notna(row.get("Mental_Health_Index")) else 75.0
+            stress_health = max(0.0, min(1.0, (40.0 - stress) / 40.0))
+            mhi_health = max(0.0, min(1.0, mhi / 100.0))
+            p3 = round(((stress_health + mhi_health) / 2.0) * 20.0)
+
+            # PART4: 자기 통제력 및 여유 (심야 이용 여부 + 주말 초과 이용시간, 20점)
+            late_night = bool(row["Late_Night_Usage"])
+            wk_extra = float(row["Weekend_Extra_Hours"])
+            late_score = 0.0 if late_night else 10.0
+            wk_score = max(0.0, min(10.0, (4.0 - wk_extra) / 4.0 * 10.0))
+            p4 = round(late_score + wk_score)
+
+            # PART5: 신체 건강 및 대인관계 (수면시간 + 수면질 + 학업GPA, 20점)
+            sleep_hrs = float(row["Sleep_Duration_Hours"])
+            sleep_qual = float(row["Sleep_Quality_Score"])  # 1 ~ 5
+            gpa = float(row["Academic_Performance_GPA"]) if pd.notna(row.get("Academic_Performance_GPA")) else 3.2
+            s_hrs_norm = max(0.0, min(1.0, (sleep_hrs - 4.0) / 4.5))
+            s_qual_norm = max(0.0, min(1.0, (sleep_qual - 1.0) / 4.0))
+            gpa_norm = max(0.0, min(1.0, (gpa - 2.0) / 2.0))
+            p5 = round(((s_hrs_norm + s_qual_norm + gpa_norm) / 3.0) * 20.0)
+        except (ValueError, TypeError, KeyError):
+            continue
+
+        part_scores = {"PART1": p1, "PART2": p2, "PART3": p3, "PART4": p4, "PART5": p5}
+        total_score = p1 + p2 + p3 + p4 + p5
+
+        docs.append({
+            "source": "kaggle",
+            "age_group": age_group,
+            "gender": str(row.get("Gender", "")).strip() or None,
+            "part_scores": part_scores,
+            "score": int(total_score)
+        })
+
+    print(f"[캐글] 변환 완료: {len(docs)}건")
+    return docs
+
+
 def main():
     responses_col = db.db["responses"]
 
-    kaggle_docs = load_kaggle_docs(KAGGLE_FILE, KAGGLE_CONFIG)
-    naver_docs = load_naver_docs(NAVER_FILE, NAVER_CONFIG)
-
-    if kaggle_docs:
-        responses_col.delete_many({"source": "kaggle"})
-        responses_col.insert_many(kaggle_docs)
-        print(f"MongoDB 'responses'에 캐글 {len(kaggle_docs)}건 적재 완료!")
+    naver_docs = load_naver_docs(NAVER_FILE)
+    kaggle_docs = load_kaggle_docs(KAGGLE_FILE)
 
     if naver_docs:
         responses_col.delete_many({"source": "naver_form"})
         responses_col.insert_many(naver_docs)
         print(f"MongoDB 'responses'에 네이버폼 {len(naver_docs)}건 적재 완료!")
 
-    # 적재 직후 preprocess_spark.py의 백분위 파이프라인을 자동 실행해 spark_results 갱신
-    if kaggle_docs or naver_docs:
+    if kaggle_docs:
+        responses_col.delete_many({"source": "kaggle"})
+        responses_col.insert_many(kaggle_docs)
+        print(f"MongoDB 'responses'에 캐글 {len(kaggle_docs)}건 적재 완료!")
+
+    if naver_docs or kaggle_docs:
         run_spark_pipeline()
-    else:
-        print("적재할 외부 데이터가 없습니다. 파일 경로와 컬럼명을 확인해 주세요.")
 
 
 if __name__ == "__main__":

@@ -30,20 +30,42 @@ def estimate_top_percentile(score, stats_doc):
 
 
 def calculate_percentiles(calc_score, age_group):
-    """MongoDB spark_results 컬렉션에서 Spark 집계 결과를 읽어 전체/연령대 백분위 반환"""
+    """출처(kaggle, naver_form, web)별로 분리 계산한 상위 백분위를 표본 수 가중평균"""
     spark_col = db.db["spark_results"]
-    all_doc = spark_col.find_one({"age_group": "ALL"})
-    age_doc = spark_col.find_one({"age_group": age_group}) if age_group else None
-
+    sources = ["kaggle", "naver_form", "web"]
     fallback = max(1, min(99, 100 - calc_score))
 
-    overall_pct = estimate_top_percentile(calc_score, all_doc)
-    age_pct = estimate_top_percentile(calc_score, age_doc)
+    def weighted_top_pct(target_age):
+        weighted_sum = 0.0
+        total_w = 0
+        for src in sources:
+            doc = spark_col.find_one({"source": src, "age_group": target_age})
+            if doc and doc.get("count") and doc.get("percentiles"):
+                pct = estimate_top_percentile(calc_score, doc)
+                w = doc["count"]
+                weighted_sum += pct * w
+                total_w += w
+        if total_w > 0:
+            return max(1, min(99, round(weighted_sum / total_w)))
 
-    if all_doc and all_doc.get("count"):
-        total_count = all_doc["count"]
+        # 출처별 문서가 아직 없을 경우 전체(ALL) 문서로 폴백
+        all_doc = (
+            spark_col.find_one({"source": "ALL", "age_group": target_age})
+            or spark_col.find_one({"age_group": target_age})
+        )
+        return estimate_top_percentile(calc_score, all_doc)
+
+    overall_pct = weighted_top_pct("ALL")
+    age_pct = weighted_top_pct(age_group) if age_group else overall_pct
+
+    all_total_doc = (
+        spark_col.find_one({"source": "ALL", "age_group": "ALL"})
+        or spark_col.find_one({"age_group": "ALL"})
+    )
+    if all_total_doc and all_total_doc.get("count"):
+        total_count = all_total_doc["count"]
     else:
-        all_age_docs = list(spark_col.find({}, {"count": 1}))
+        all_age_docs = list(spark_col.find({"source": {"$ne": "ALL"}}, {"count": 1}))
         total_count = sum(d.get("count", 0) for d in all_age_docs) or None
 
     final_overall = overall_pct if overall_pct is not None else (age_pct if age_pct is not None else fallback)
